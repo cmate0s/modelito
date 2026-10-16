@@ -70,19 +70,6 @@ export async function fetchWeather(place: Place): Promise<WeatherSnapshot> {
   }
 }
 
-export function weatherIcon(code: number): string {
-  if (code === 0) return '☀️'
-  if (code <= 2) return '🌤️'
-  if (code === 3) return '☁️'
-  if (code <= 48) return '🌫️'
-  if (code <= 57) return '🌦️'
-  if (code <= 67) return '🌧️'
-  if (code <= 77) return '❄️'
-  if (code <= 82) return '🌧️'
-  if (code <= 86) return '🌨️'
-  return '⛈️'
-}
-
 /** Sensación térmica media del día; usa la temperatura normal si el modelito no guardó la sensación. */
 export const perceivedTemp = (w: WeatherSnapshot) =>
   ((w.aMax ?? w.tMax) + (w.aMin ?? w.tMin)) / 2

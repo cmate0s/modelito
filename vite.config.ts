@@ -8,13 +8,14 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg'],
+      workbox: { globPatterns: ['**/*.{js,css,html,woff2,png,svg}'] },
       manifest: {
         name: 'Modelito',
         short_name: 'Modelito',
         description: 'Diario personal de outfits con el tiempo de cada día',
         lang: 'es',
-        theme_color: '#d9644a',
-        background_color: '#fbf7f2',
+        theme_color: '#f6f2ec',
+        background_color: '#f6f2ec',
         display: 'standalone',
         orientation: 'portrait',
         start_url: '/',

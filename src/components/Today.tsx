@@ -1,20 +1,27 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import {
+  CameraIcon,
+  CrosshairIcon,
+  DropIcon,
+  ImagesIcon,
+  MagnifyingGlassIcon,
+  MapPinIcon,
+  ThermometerIcon,
+  WarningCircleIcon,
+  WindIcon,
+} from '@phosphor-icons/react'
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { saveOutfit } from '../lib/db.ts'
+import { longToday } from '../lib/format.ts'
 import { useObjectUrl } from '../lib/hooks.ts'
 import { shrinkPhoto } from '../lib/image.ts'
+import { useReveal } from '../lib/reveal.ts'
 import { findSimilar } from '../lib/similar.ts'
 import type { Comfort, Outfit, Place, WeatherSnapshot } from '../lib/types.ts'
-import {
-  fetchWeather,
-  loadPlace,
-  locate,
-  perceivedTemp,
-  savePlace,
-  searchCity,
-  weatherIcon,
-} from '../lib/weather.ts'
+import { fetchWeather, loadPlace, locate, perceivedTemp, savePlace, searchCity } from '../lib/weather.ts'
+import { PageHeader } from './PageHeader.tsx'
 import { ComfortPicker, Stars } from './Rating.tsx'
 import { Thumb } from './Thumb.tsx'
+import { WeatherIcon, WeatherLabel } from './WeatherIcon.tsx'
 
 type WeatherState =
   | { status: 'loading' }
@@ -68,10 +75,16 @@ export function Today({
         setPlace(p)
       })
       .catch(() => {
-        setState({ status: 'error', message: 'No tengo tu ubicación' })
+        setState({ status: 'error', message: 'No tengo tu ubicación. Elige tu ciudad.' })
         setChoosingCity(true)
       })
   }, [place, loadWeather])
+
+  const pickPlace = (p: Place) => {
+    savePlace(p)
+    setPlace(p)
+    setChoosingCity(false)
+  }
 
   const weather = state.status === 'ready' ? state.weather : undefined
   const similar = weather ? findSimilar(outfits, perceivedTemp(weather)).slice(0, 8) : []
@@ -89,6 +102,7 @@ export function Today({
   async function save() {
     if (!photo) return
     setBusy(true)
+    setError('')
     try {
       await saveOutfit({
         id: crypto.randomUUID(),
@@ -106,8 +120,8 @@ export function Today({
       setComfort('ok')
       setNotes('')
       onSaved()
-    } catch (e) {
-      setError((e as Error).message)
+    } catch {
+      setError('No se pudo guardar. Comprueba que queda espacio en el móvil.')
     } finally {
       setBusy(false)
     }
@@ -115,101 +129,206 @@ export function Today({
 
   return (
     <div className="page">
-      <section className="card weather">
-        {state.status === 'loading' && <p>Consultando el tiempo…</p>}
-        {state.status === 'error' && <p>⚠️ {state.message}</p>}
+      <PageHeader title="Hoy" subtitle={longToday()} />
+
+      <Reveal className="card weather">
+        {state.status === 'loading' && <WeatherSkeleton />}
+        {state.status === 'error' && (
+          <p className="inline-error">
+            <WarningCircleIcon size={20} weight="duotone" aria-hidden="true" />
+            {state.message}
+          </p>
+        )}
         {weather && (
           <>
-            <div className="weather-main">
-              <span className="weather-icon">{weatherIcon(weather.code)}</span>
-              <span className="weather-temp">{Math.round(weather.temp)}°</span>
-              <span className="weather-sub">
-                sensación {Math.round(weather.feelsLike)}° · hoy {Math.round(weather.aMin ?? weather.tMin)}° /{' '}
-                {Math.round(weather.aMax ?? weather.tMax)}°<br />
-                {weather.humidity != null && `humedad ${Math.round(weather.humidity)}% · `}viento{' '}
-                {Math.round(weather.wind)} km/h
+            <div className="weather-top">
+              <div>
+                <p className="weather-temp">{Math.round(weather.temp)}°</p>
+                <p className="muted">
+                  <WeatherLabel code={weather.code} /> · sensación {Math.round(weather.feelsLike)}°
+                </p>
+              </div>
+              <span className="weather-glyph">
+                <WeatherIcon code={weather.code} size={56} />
               </span>
             </div>
+            <dl className="stats">
+              <Stat icon={<ThermometerIcon size={16} weight="duotone" />} label="Sensación">
+                {Math.round(weather.aMin ?? weather.tMin)}° a {Math.round(weather.aMax ?? weather.tMax)}°
+              </Stat>
+              {weather.humidity != null && (
+                <Stat icon={<DropIcon size={16} weight="duotone" />} label="Humedad">
+                  {Math.round(weather.humidity)}%
+                </Stat>
+              )}
+              <Stat icon={<WindIcon size={16} weight="duotone" />} label="Viento">
+                {Math.round(weather.wind)} km/h
+              </Stat>
+            </dl>
           </>
         )}
-        <button className="link" onClick={() => setChoosingCity((v) => !v)}>
-          📍 {place?.name ?? 'Elegir ubicación'}
+        <button
+          className="place-btn"
+          aria-expanded={choosingCity}
+          onClick={() => setChoosingCity((v) => !v)}
+        >
+          <MapPinIcon size={16} weight="fill" aria-hidden="true" />
+          {place?.name ?? 'Elegir ubicación'}
         </button>
         {choosingCity && (
           <CityPicker
-            onPick={(p) => {
-              savePlace(p)
-              setPlace(p)
-              setChoosingCity(false)
-            }}
+            onPick={pickPlace}
             onLocate={() =>
               locate()
-                .then((p) => {
-                  savePlace(p)
-                  setPlace(p)
-                  setChoosingCity(false)
-                })
-                .catch(() => setError('No se pudo obtener la ubicación'))
+                .then(pickPlace)
+                .catch(() => setState({ status: 'error', message: 'No se pudo obtener la ubicación.' }))
             }
           />
         )}
-      </section>
+      </Reveal>
 
       {weather && similar.length > 0 && (
-        <section>
-          <h2>Días como hoy (sensación {Math.round(perceivedTemp(weather))}°)</h2>
-          <p className="hint">Lo que te pusiste con una sensación térmica parecida, lo mejor valorado primero.</p>
+        <Reveal as="section" className="section">
+          <div className="section-head">
+            <h2>Días como hoy</h2>
+            <span className="badge">media del día {Math.round(perceivedTemp(weather))}°</span>
+          </div>
+          <p className="muted small">Lo que te pusiste con una sensación parecida. Arriba, lo que mejor te funcionó.</p>
           <div className="strip">
-            {similar.map((o) => (
-              <Thumb key={o.id} outfit={o} onOpen={onOpen} />
+            {similar.map((o, i) => (
+              <Thumb key={o.id} outfit={o} index={i} onOpen={onOpen} />
             ))}
           </div>
-        </section>
+        </Reveal>
       )}
 
-      <section className="card">
-        <h2>¿Qué llevas hoy?</h2>
-        {photoUrl ? (
-          <img className="preview" src={photoUrl} alt="Vista previa del modelito" />
-        ) : (
-          <div className="photo-empty">📸</div>
-        )}
+      {outfits.length === 0 && (
+        <Reveal as="section" className="card intro">
+          <h2>Así funciona</h2>
+          <ol className="steps">
+            <li>
+              <span className="step-n">1</span>
+              <span>Haz una foto de lo que llevas. El tiempo del día se guarda solo.</span>
+            </li>
+            <li>
+              <span className="step-n">2</span>
+              <span>Valóralo y di si pasaste frío, calor o estuviste a gusto.</span>
+            </li>
+            <li>
+              <span className="step-n">3</span>
+              <span>Cuando vuelva a hacer un día parecido, aquí verás qué te pusiste.</span>
+            </li>
+          </ol>
+        </Reveal>
+      )}
+
+      <Reveal as="section" className="card form">
+        <h2>Tu modelito de hoy</h2>
+        <div className="photo-slot">
+          {photoUrl ? (
+            <img src={photoUrl} alt="Vista previa del modelito" />
+          ) : (
+            <div className="photo-empty">
+              <CameraIcon size={40} weight="duotone" aria-hidden="true" />
+              <p>Añade una foto</p>
+              <p className="muted small">Mejor de cuerpo entero, frente al espejo</p>
+            </div>
+          )}
+        </div>
         <div className="row">
-          <PhotoButton label="Hacer foto" capture onFile={onPhoto} />
-          <PhotoButton label="Galería" onFile={onPhoto} />
+          <PhotoButton capture onFile={onPhoto}>
+            <CameraIcon size={20} weight="bold" aria-hidden="true" />
+            {photo ? 'Repetir' : 'Hacer foto'}
+          </PhotoButton>
+          <PhotoButton onFile={onPhoto}>
+            <ImagesIcon size={20} weight="bold" aria-hidden="true" />
+            Galería
+          </PhotoButton>
         </div>
 
-        <label className="field">Valoración</label>
-        <Stars value={rating} onChange={setRating} />
-        <label className="field">¿Qué tal de temperatura?</label>
-        <ComfortPicker value={comfort} onChange={setComfort} />
-        <label className="field" htmlFor="notes">
-          Notas
-        </label>
-        <textarea
-          id="notes"
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          placeholder="Prendas, ocasión, cómo te sentiste…"
-          rows={2}
-        />
-        {error && <p className="error">{error}</p>}
+        <div className="field">
+          <span className="label">Valoración</span>
+          <Stars value={rating} onChange={setRating} />
+        </div>
+        <div className="field">
+          <span className="label">¿Qué tal de temperatura?</span>
+          <ComfortPicker value={comfort} onChange={setComfort} />
+        </div>
+        <div className="field">
+          <label className="label" htmlFor="notes">
+            Notas
+          </label>
+          <textarea
+            id="notes"
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Prendas, ocasión, cómo te sentiste…"
+            rows={2}
+          />
+        </div>
+        {error && (
+          <p className="inline-error" role="alert">
+            <WarningCircleIcon size={20} weight="duotone" aria-hidden="true" />
+            {error}
+          </p>
+        )}
         <button className="btn primary full" onClick={save} disabled={!photo || busy}>
-          {busy ? 'Guardando…' : 'Guardar modelito'}
+          {busy ? 'Guardando…' : photo ? 'Guardar modelito' : 'Primero añade una foto'}
         </button>
-      </section>
+      </Reveal>
+    </div>
+  )
+}
+
+function Reveal({
+  as: Tag = 'div',
+  className,
+  children,
+}: {
+  as?: 'div' | 'section'
+  className: string
+  children: ReactNode
+}) {
+  const ref = useReveal<HTMLDivElement>()
+  return (
+    <Tag ref={ref} className={`${className} reveal`}>
+      {children}
+    </Tag>
+  )
+}
+
+function Stat({ icon, label, children }: { icon: ReactNode; label: string; children: ReactNode }) {
+  return (
+    <div className="stat">
+      <dt>
+        <span aria-hidden="true">{icon}</span>
+        {label}
+      </dt>
+      <dd>{children}</dd>
+    </div>
+  )
+}
+
+function WeatherSkeleton() {
+  return (
+    <div className="weather-top" aria-label="Consultando el tiempo" role="status">
+      <div className="skeleton-stack">
+        <span className="skeleton" style={{ width: 120, height: 60 }} />
+        <span className="skeleton" style={{ width: 160, height: 16 }} />
+      </div>
+      <span className="skeleton" style={{ width: 56, height: 56, borderRadius: 999 }} />
     </div>
   )
 }
 
 function PhotoButton({
-  label,
   capture,
   onFile,
+  children,
 }: {
-  label: string
   capture?: boolean
   onFile: (f: File | undefined) => void
+  children: ReactNode
 }) {
   const ref = useRef<HTMLInputElement>(null)
   return (
@@ -226,57 +345,68 @@ function PhotoButton({
         }}
       />
       <button className="btn" type="button" onClick={() => ref.current?.click()}>
-        {label}
+        {children}
       </button>
     </>
   )
 }
 
-function CityPicker({
-  onPick,
-  onLocate,
-}: {
-  onPick: (p: Place) => void
-  onLocate: () => void
-}) {
+function CityPicker({ onPick, onLocate }: { onPick: (p: Place) => void; onLocate: () => void }) {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<Place[]>([])
   const [msg, setMsg] = useState('')
+  const [searching, setSearching] = useState(false)
 
   async function search(e: React.FormEvent) {
     e.preventDefault()
-    if (!query.trim()) return
+    if (!query.trim()) {
+      setMsg('Escribe el nombre de una ciudad.')
+      return
+    }
+    setSearching(true)
     try {
       const found = await searchCity(query.trim())
       setResults(found)
-      setMsg(found.length ? '' : 'Sin resultados')
+      setMsg(found.length ? '' : 'No encontré esa ciudad. Prueba con otro nombre.')
     } catch (err) {
       setMsg((err as Error).message)
+    } finally {
+      setSearching(false)
     }
   }
 
   return (
     <div className="city-picker">
-      <button className="btn" onClick={onLocate}>
-        Usar mi ubicación
-      </button>
-      <form onSubmit={search} className="row">
+      <form onSubmit={search} className="search">
+        <MagnifyingGlassIcon size={20} aria-hidden="true" />
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Buscar ciudad"
           aria-label="Buscar ciudad"
+          enterKeyHint="search"
         />
-        <button className="btn" type="submit">
-          Buscar
+        <button className="btn small" type="submit" disabled={searching}>
+          {searching ? 'Buscando…' : 'Buscar'}
         </button>
       </form>
-      {msg && <p className="hint">{msg}</p>}
-      {results.map((p) => (
-        <button key={`${p.lat},${p.lon}`} className="result" onClick={() => onPick(p)}>
-          {p.name}
-        </button>
-      ))}
+      {msg && <p className="muted small">{msg}</p>}
+      {results.length > 0 && (
+        <ul className="results">
+          {results.map((p) => (
+            <li key={`${p.lat},${p.lon}`}>
+              <button onClick={() => onPick(p)}>
+                <MapPinIcon size={16} weight="duotone" aria-hidden="true" />
+                {p.name}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      <button className="btn ghost" onClick={onLocate}>
+        <CrosshairIcon size={20} aria-hidden="true" />
+        Usar mi ubicación
+      </button>
     </div>
   )
 }

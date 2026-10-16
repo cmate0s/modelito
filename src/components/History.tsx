@@ -1,14 +1,18 @@
+import { CoatHangerIcon, MagnifyingGlassIcon, StarIcon } from '@phosphor-icons/react'
 import { useMemo, useState } from 'react'
 import { findSimilar, TEMP_RANGE } from '../lib/similar.ts'
 import type { Outfit } from '../lib/types.ts'
+import { PageHeader } from './PageHeader.tsx'
 import { Thumb } from './Thumb.tsx'
 
 export function History({
   outfits,
   onOpen,
+  onNew,
 }: {
   outfits: Outfit[]
   onOpen: (o: Outfit) => void
+  onNew: () => void
 }) {
   const [temp, setTemp] = useState('')
   const [topOnly, setTopOnly] = useState(false)
@@ -21,33 +25,69 @@ export function History({
     return list
   }, [outfits, temp, topOnly])
 
+  const count = outfits.length
+  const subtitle = count === 1 ? '1 modelito' : `${count} modelitos`
+
+  if (count === 0) {
+    return (
+      <div className="page">
+        <PageHeader title="Historial" />
+        <div className="empty-state">
+          <span className="empty-icon">
+            <CoatHangerIcon size={40} weight="duotone" aria-hidden="true" />
+          </span>
+          <h2>Tu armario de días empieza hoy</h2>
+          <p className="muted">Guarda tu primer modelito y aquí irás viendo todos, con el tiempo que hacía.</p>
+          <button className="btn primary" onClick={onNew}>
+            Registrar el de hoy
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="page">
+      <PageHeader title="Historial" subtitle={subtitle} />
       <div className="filters">
-        <input
-          type="number"
-          inputMode="decimal"
-          value={temp}
-          onChange={(e) => setTemp(e.target.value)}
-          placeholder={`Buscar por sensación térmica (±${TEMP_RANGE}°)`}
-          aria-label="Buscar por sensación térmica media"
-        />
+        <label className="search">
+          <MagnifyingGlassIcon size={20} aria-hidden="true" />
+          <input
+            type="number"
+            inputMode="decimal"
+            value={temp}
+            onChange={(e) => setTemp(e.target.value)}
+            placeholder="Sensación térmica"
+            aria-label={`Buscar por sensación térmica, más o menos ${TEMP_RANGE} grados`}
+          />
+          <span className="unit">°C</span>
+        </label>
         <button
           className={topOnly ? 'chip on' : 'chip'}
           aria-pressed={topOnly}
           onClick={() => setTopOnly((v) => !v)}
         >
-          ★ 4+
+          <StarIcon size={16} weight="fill" aria-hidden="true" />4 o más
         </button>
       </div>
-      {outfits.length === 0 ? (
-        <p className="empty">Todavía no has guardado ningún modelito. Empieza por la pestaña Hoy.</p>
-      ) : shown.length === 0 ? (
-        <p className="empty">Nada con esos filtros.</p>
+      {temp && <p className="muted small">Días con sensación entre {parseFloat(temp) - TEMP_RANGE}° y {parseFloat(temp) + TEMP_RANGE}°</p>}
+      {shown.length === 0 ? (
+        <div className="empty-state compact">
+          <p>Nada con esos filtros.</p>
+          <button
+            className="btn ghost"
+            onClick={() => {
+              setTemp('')
+              setTopOnly(false)
+            }}
+          >
+            Quitar filtros
+          </button>
+        </div>
       ) : (
         <div className="grid">
-          {shown.map((o) => (
-            <Thumb key={o.id} outfit={o} onOpen={onOpen} />
+          {shown.map((o, i) => (
+            <Thumb key={o.id} outfit={o} index={i} onOpen={onOpen} />
           ))}
         </div>
       )}
