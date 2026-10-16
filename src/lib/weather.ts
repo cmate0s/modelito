@@ -48,8 +48,8 @@ export async function fetchWeather(place: Place): Promise<WeatherSnapshot> {
   const params = new URLSearchParams({
     latitude: String(place.lat),
     longitude: String(place.lon),
-    current: 'temperature_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m',
-    daily: 'temperature_2m_max,temperature_2m_min',
+    current: 'temperature_2m,apparent_temperature,relative_humidity_2m,precipitation,weather_code,wind_speed_10m',
+    daily: 'temperature_2m_max,temperature_2m_min,apparent_temperature_max,apparent_temperature_min',
     timezone: 'auto',
     forecast_days: '1',
   })
@@ -64,6 +64,9 @@ export async function fetchWeather(place: Place): Promise<WeatherSnapshot> {
     wind: d.current.wind_speed_10m,
     precip: d.current.precipitation,
     code: d.current.weather_code,
+    aMax: d.daily.apparent_temperature_max[0],
+    aMin: d.daily.apparent_temperature_min[0],
+    humidity: d.current.relative_humidity_2m,
   }
 }
 
@@ -80,4 +83,6 @@ export function weatherIcon(code: number): string {
   return '⛈️'
 }
 
-export const meanTemp = (w: WeatherSnapshot) => (w.tMax + w.tMin) / 2
+/** Sensación térmica media del día; usa la temperatura normal si el modelito no guardó la sensación. */
+export const perceivedTemp = (w: WeatherSnapshot) =>
+  ((w.aMax ?? w.tMax) + (w.aMin ?? w.tMin)) / 2

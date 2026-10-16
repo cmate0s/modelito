@@ -29,8 +29,8 @@ export function History({
           inputMode="decimal"
           value={temp}
           onChange={(e) => setTemp(e.target.value)}
-          placeholder={`Buscar por temperatura (±${TEMP_RANGE}°)`}
-          aria-label="Buscar por temperatura media"
+          placeholder={`Buscar por sensación térmica (±${TEMP_RANGE}°)`}
+          aria-label="Buscar por sensación térmica media"
         />
         <button
           className={topOnly ? 'chip on' : 'chip'}

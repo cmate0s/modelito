@@ -51,8 +51,10 @@ export function Detail({
         <h2>{formatDate(outfit.date)}</h2>
         {w && (
           <p className="weather-line">
-            {weatherIcon(w.code)} {Math.round(w.tMin)}° / {Math.round(w.tMax)}° · sensación{' '}
-            {Math.round(w.feelsLike)}° · viento {Math.round(w.wind)} km/h
+            {weatherIcon(w.code)} sensación {Math.round(w.aMin ?? w.tMin)}° /{' '}
+            {Math.round(w.aMax ?? w.tMax)}°
+            {w.humidity != null && ` · humedad ${Math.round(w.humidity)}%`} · viento{' '}
+            {Math.round(w.wind)} km/h
             {outfit.place && ` · ${outfit.place}`}
           </p>
         )}

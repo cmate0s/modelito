@@ -1,6 +1,6 @@
 import { useObjectUrl } from '../lib/hooks.ts'
 import type { Outfit } from '../lib/types.ts'
-import { meanTemp } from '../lib/weather.ts'
+import { perceivedTemp } from '../lib/weather.ts'
 import { Stars } from './Rating.tsx'
 
 export function formatDate(date: string): string {
@@ -19,7 +19,7 @@ export function Thumb({ outfit, onOpen }: { outfit: Outfit; onOpen: (o: Outfit) 
       <span className="thumb-meta">
         <span>
           {formatDate(outfit.date)}
-          {outfit.weather && ` · ${Math.round(meanTemp(outfit.weather))}°`}
+          {outfit.weather && ` · ${Math.round(perceivedTemp(outfit.weather))}°`}
         </span>
         <Stars value={outfit.rating} />
       </span>

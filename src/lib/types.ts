@@ -8,6 +8,10 @@ export interface WeatherSnapshot {
   wind: number
   precip: number
   code: number
+  /** Sensación térmica máxima/mínima del día y humedad; ausentes en modelitos antiguos. */
+  aMax?: number
+  aMin?: number
+  humidity?: number
 }
 
 export interface Place {

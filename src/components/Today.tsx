@@ -8,7 +8,7 @@ import {
   fetchWeather,
   loadPlace,
   locate,
-  meanTemp,
+  perceivedTemp,
   savePlace,
   searchCity,
   weatherIcon,
@@ -74,7 +74,7 @@ export function Today({
   }, [place, loadWeather])
 
   const weather = state.status === 'ready' ? state.weather : undefined
-  const similar = weather ? findSimilar(outfits, meanTemp(weather)).slice(0, 8) : []
+  const similar = weather ? findSimilar(outfits, perceivedTemp(weather)).slice(0, 8) : []
 
   async function onPhoto(file: File | undefined) {
     if (!file) return
@@ -124,8 +124,9 @@ export function Today({
               <span className="weather-icon">{weatherIcon(weather.code)}</span>
               <span className="weather-temp">{Math.round(weather.temp)}°</span>
               <span className="weather-sub">
-                sensación {Math.round(weather.feelsLike)}°<br />
-                {Math.round(weather.tMin)}° / {Math.round(weather.tMax)}° · viento{' '}
+                sensación {Math.round(weather.feelsLike)}° · hoy {Math.round(weather.aMin ?? weather.tMin)}° /{' '}
+                {Math.round(weather.aMax ?? weather.tMax)}°<br />
+                {weather.humidity != null && `humedad ${Math.round(weather.humidity)}% · `}viento{' '}
                 {Math.round(weather.wind)} km/h
               </span>
             </div>
@@ -156,8 +157,8 @@ export function Today({
 
       {weather && similar.length > 0 && (
         <section>
-          <h2>Días como hoy ({Math.round(meanTemp(weather))}°)</h2>
-          <p className="hint">Lo que te pusiste con una temperatura parecida, lo mejor valorado primero.</p>
+          <h2>Días como hoy (sensación {Math.round(perceivedTemp(weather))}°)</h2>
+          <p className="hint">Lo que te pusiste con una sensación térmica parecida, lo mejor valorado primero.</p>
           <div className="strip">
             {similar.map((o) => (
               <Thumb key={o.id} outfit={o} onOpen={onOpen} />
