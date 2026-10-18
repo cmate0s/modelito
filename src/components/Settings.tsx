@@ -86,6 +86,11 @@ export function Settings({ count, onImported }: { count: number; onImported: (ms
           , con licencia CC BY 4.0. Sin cuentas ni servidores: nada sale de tu móvil salvo la consulta del tiempo.
         </p>
       </section>
+      <p className="signature">
+        <a href="https://mate0s-web.vercel.app" target="_blank" rel="noreferrer">
+          hecho por mate0s<span className="signature-cursor" aria-hidden="true" />
+        </a>
+      </p>
     </div>
   )
 }

@@ -1093,6 +1093,40 @@ input[type='number']::-webkit-inner-spin-button {
   }
 }
 
+.signature {
+  margin: 8px 0 24px;
+  text-align: center;
+  font-size: 0.8125rem;
+}
+
+.signature a {
+  color: var(--muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-weight: 400;
+  text-decoration: none;
+  transition: color var(--fast) var(--ease);
+}
+
+.signature a:hover {
+  color: var(--ink);
+}
+
+.signature-cursor {
+  display: inline-block;
+  width: 0.5em;
+  height: 1em;
+  margin-left: 2px;
+  vertical-align: -0.15em;
+  background: var(--accent);
+  animation: blink 1s steps(1) infinite;
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
