@@ -33,7 +33,7 @@ export function Thumb({
         {outfit.weather && (
           <span className="thumb-chip">
             {Math.round(perceivedTemp(outfit.weather))}°
-            {outfit.comfort !== 'ok' && <ComfortIcon comfort={outfit.comfort} size={14} />}
+            {outfit.comfort !== 'ok' && <ComfortIcon comfort={outfit.comfort} size={20} />}
           </span>
         )}
       </span>

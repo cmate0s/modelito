@@ -37,7 +37,7 @@ export function Settings({ count, onImported }: { count: number; onImported: (ms
 
   return (
     <div className="page">
-      <PageHeader title="Ajustes" />
+      <PageHeader title="Ajustes" decoration="sparkle" />
       <section className="card">
         <div className="card-icon">
           <CloudArrowDownIcon size={24} weight="duotone" aria-hidden="true" />
@@ -74,7 +74,7 @@ export function Settings({ count, onImported }: { count: number; onImported: (ms
         )}
       </section>
       <section className="card">
-        <div className="card-icon">
+        <div className="card-icon mint">
           <InfoIcon size={24} weight="duotone" aria-hidden="true" />
         </div>
         <h2>Sobre Modelito</h2>

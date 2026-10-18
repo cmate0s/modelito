@@ -1,8 +1,8 @@
-import { FireIcon, SmileyIcon, SnowflakeIcon, StarIcon } from '@phosphor-icons/react'
+import { StarIcon } from '@phosphor-icons/react'
+import { feelArt } from '../lib/art.ts'
 import { COMFORT_LABEL } from '../lib/format.ts'
 import type { Comfort } from '../lib/types.ts'
 
-const COMFORT_ICON = { cold: SnowflakeIcon, ok: SmileyIcon, hot: FireIcon }
 const COMFORTS: Comfort[] = ['cold', 'ok', 'hot']
 
 export function Stars({
@@ -35,16 +35,16 @@ export function Stars({
           className={n <= value ? 'on' : ''}
           onClick={() => onChange(n)}
         >
-          <StarIcon size={32} weight="fill" />
+          <StarIcon size={38} weight="fill" />
         </button>
       ))}
     </div>
   )
 }
 
+/** La mascota con la cara de cada sensación: tiritando, a gusto o sudando. */
 export function ComfortIcon({ comfort, size = 16 }: { comfort: Comfort; size?: number }) {
-  const Glyph = COMFORT_ICON[comfort]
-  return <Glyph size={size} weight="duotone" aria-label={COMFORT_LABEL[comfort]} />
+  return <img className="comfort-art" src={feelArt(comfort)} width={size} height={size} alt={COMFORT_LABEL[comfort]} />
 }
 
 export function ComfortPicker({
@@ -56,21 +56,17 @@ export function ComfortPicker({
 }) {
   return (
     <div className="segmented" role="radiogroup" aria-label="Sensación térmica">
-      <span
-        className="segmented-thumb"
-        style={{ transform: `translateX(${COMFORTS.indexOf(value) * 100}%)` }}
-        aria-hidden="true"
-      />
       {COMFORTS.map((c) => (
         <button
           key={c}
           type="button"
           role="radio"
           aria-checked={value === c}
+          data-comfort={c}
           className={value === c ? 'on' : ''}
           onClick={() => onChange(c)}
         >
-          <ComfortIcon comfort={c} size={20} />
+          <ComfortIcon comfort={c} size={64} />
           {COMFORT_LABEL[c]}
         </button>
       ))}

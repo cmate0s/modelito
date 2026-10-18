@@ -89,7 +89,7 @@ export function Detail({
         {w && (
           <div className="weather-row">
             <span className="weather-glyph small">
-              <WeatherIcon code={w.code} size={28} />
+              <WeatherIcon code={w.code} size={52} />
             </span>
             <div>
               <p className="strong">

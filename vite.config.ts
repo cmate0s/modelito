@@ -8,14 +8,18 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'icon-192.png', 'icon-512.png', 'icon-512-maskable.png'],
-      workbox: { globPatterns: ['**/*.{js,css,html,woff2,png,svg}'] },
+      workbox: {
+        globPatterns: ['**/*.{js,css,html,woff2,png,webp,svg}'],
+        // los iconos grandes solo se necesitan al instalar la app, no para funcionar sin conexión
+        globIgnores: ['icon-512*.png'],
+      },
       manifest: {
         name: 'Modelito',
         short_name: 'Modelito',
         description: 'Diario personal de outfits con el tiempo de cada día',
         lang: 'es',
-        theme_color: '#f6f2ec',
-        background_color: '#f6f2ec',
+        theme_color: '#fff6e5',
+        background_color: '#fff6e5',
         display: 'standalone',
         orientation: 'portrait',
         start_url: '/',

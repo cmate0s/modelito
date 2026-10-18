@@ -1,5 +1,7 @@
 import { CheckIcon, ClockCounterClockwiseIcon, CoatHangerIcon, GearSixIcon, type Icon } from '@phosphor-icons/react'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { Backdrop } from './components/Backdrop.tsx'
+import { Confetti } from './components/Confetti.tsx'
 import { Detail } from './components/Detail.tsx'
 import { History } from './components/History.tsx'
 import { Settings } from './components/Settings.tsx'
@@ -20,7 +22,15 @@ export default function App() {
   const [outfits, setOutfits] = useState<Outfit[]>([])
   const [open, setOpen] = useState<Outfit | null>(null)
   const [toast, setToast] = useState<{ id: number; text: string } | null>(null)
+  const [burst, setBurst] = useState<number | null>(null)
   const toastTimer = useRef<number>(undefined)
+
+  // la ráfaga de confeti dura poco: se retira sola
+  useEffect(() => {
+    if (burst === null) return
+    const t = setTimeout(() => setBurst(null), 1800)
+    return () => clearTimeout(t)
+  }, [burst])
 
   const reload = useCallback(() => {
     listOutfits().then(setOutfits)
@@ -50,7 +60,9 @@ export default function App() {
   const active = TABS.findIndex((t) => t.id === tab)
 
   return (
-    <div className="app">
+    <>
+      <Backdrop />
+      <div className="app">
       <a className="skip" href="#main">
         Saltar al contenido
       </a>
@@ -61,6 +73,7 @@ export default function App() {
             onOpen={setOpen}
             onSaved={() => {
               notify('Modelito guardado')
+              setBurst(Date.now())
               go('history')
             }}
           />
@@ -78,6 +91,7 @@ export default function App() {
         {TABS.map(({ id, label, icon: Glyph }) => (
           <button
             key={id}
+            data-tab={id}
             className={tab === id ? 'on' : ''}
             aria-current={tab === id ? 'page' : undefined}
             onClick={() => go(id)}
@@ -95,9 +109,12 @@ export default function App() {
         </div>
       )}
 
+      <Confetti burst={burst} />
+
       {open && (
         <Detail key={open.id} outfit={open} onClose={() => setOpen(null)} onChanged={notify} />
       )}
-    </div>
+      </div>
+    </>
   )
 }

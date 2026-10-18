@@ -9,7 +9,8 @@ import {
   WarningCircleIcon,
   WindIcon,
 } from '@phosphor-icons/react'
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
+import { art } from '../lib/art.ts'
 import { saveOutfit } from '../lib/db.ts'
 import { longToday } from '../lib/format.ts'
 import { useObjectUrl } from '../lib/hooks.ts'
@@ -17,6 +18,7 @@ import { shrinkPhoto } from '../lib/image.ts'
 import { useReveal } from '../lib/reveal.ts'
 import { findSimilar } from '../lib/similar.ts'
 import type { Comfort, Outfit, Place, WeatherSnapshot } from '../lib/types.ts'
+import { weatherTint } from '../lib/weatherKind.ts'
 import { fetchWeather, loadPlace, locate, perceivedTemp, savePlace, searchCity } from '../lib/weather.ts'
 import { PageHeader } from './PageHeader.tsx'
 import { ComfortPicker, Stars } from './Rating.tsx'
@@ -129,9 +131,9 @@ export function Today({
 
   return (
     <div className="page">
-      <PageHeader title="Hoy" subtitle={longToday()} />
+      <PageHeader title="Hoy" subtitle={longToday()} decoration="sun" />
 
-      <Reveal className="card weather">
+      <Reveal className="card weather" style={weather ? ({ '--tint': weatherTint(weather.code) } as CSSProperties) : undefined}>
         {state.status === 'loading' && <WeatherSkeleton />}
         {state.status === 'error' && (
           <p className="inline-error">
@@ -149,7 +151,7 @@ export function Today({
                 </p>
               </div>
               <span className="weather-glyph">
-                <WeatherIcon code={weather.code} size={56} />
+                <WeatherIcon code={weather.code} size={96} />
               </span>
             </div>
             <dl className="stats">
@@ -204,18 +206,19 @@ export function Today({
 
       {outfits.length === 0 && (
         <Reveal as="section" className="card intro">
+          <img className="intro-art" src={art('bienvenida')} width={140} height={140} alt="" />
           <h2>Así funciona</h2>
           <ol className="steps">
             <li>
-              <span className="step-n">1</span>
+              <img className="step-art" src={art('paso-foto')} width={56} height={56} alt="" />
               <span>Haz una foto de lo que llevas. El tiempo del día se guarda solo.</span>
             </li>
             <li>
-              <span className="step-n">2</span>
+              <img className="step-art" src={art('paso-valora')} width={56} height={56} alt="" />
               <span>Valóralo y di si pasaste frío, calor o estuviste a gusto.</span>
             </li>
             <li>
-              <span className="step-n">3</span>
+              <img className="step-art" src={art('paso-tiempo')} width={56} height={56} alt="" />
               <span>Cuando vuelva a hacer un día parecido, aquí verás qué te pusiste.</span>
             </li>
           </ol>
@@ -229,7 +232,7 @@ export function Today({
             <img src={photoUrl} alt="Vista previa del modelito" />
           ) : (
             <div className="photo-empty">
-              <CameraIcon size={40} weight="duotone" aria-hidden="true" />
+              <img src={art('hoy')} width={132} height={132} alt="" />
               <p>Añade una foto</p>
               <p className="muted small">Mejor de cuerpo entero, frente al espejo</p>
             </div>
@@ -283,15 +286,17 @@ export function Today({
 function Reveal({
   as: Tag = 'div',
   className,
+  style,
   children,
 }: {
   as?: 'div' | 'section'
   className: string
+  style?: CSSProperties
   children: ReactNode
 }) {
   const ref = useReveal<HTMLDivElement>()
   return (
-    <Tag ref={ref} className={`${className} reveal`}>
+    <Tag ref={ref} className={`${className} reveal`} style={style}>
       {children}
     </Tag>
   )
