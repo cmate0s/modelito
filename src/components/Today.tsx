@@ -14,7 +14,7 @@ import { saveOutfit } from '../lib/db.ts'
 import { formatDateYear, longToday } from '../lib/format.ts'
 import { useObjectUrl } from '../lib/hooks.ts'
 import { shrinkPhoto } from '../lib/image.ts'
-import { fetchLastYear, similarLastYear, type PastDay } from '../lib/lastYear.ts'
+import { fetchPastDays, similarPastDays, type PastDay } from '../lib/pastDays.ts'
 import { useReveal } from '../lib/reveal.ts'
 import { findSimilar } from '../lib/similar.ts'
 import type { Comfort, Outfit, Place, WeatherSnapshot } from '../lib/types.ts'
@@ -88,20 +88,20 @@ export function Today({
     setChoosingCity(false)
   }
 
-  const [lastYear, setLastYear] = useState<PastDay[] | null>(null)
+  const [history, setHistory] = useState<PastDay[] | null>(null)
   useEffect(() => {
     if (!place) return
     let cancelled = false
-    fetchLastYear(place)
-      .then((days) => !cancelled && setLastYear(days))
-      .catch(() => !cancelled && setLastYear(null))
+    fetchPastDays(place)
+      .then((days) => !cancelled && setHistory(days))
+      .catch(() => !cancelled && setHistory(null))
     return () => {
       cancelled = true
     }
   }, [place])
 
   const weather = state.status === 'ready' ? state.weather : undefined
-  const pastDays = weather && lastYear ? similarLastYear(lastYear, perceivedTemp(weather)) : []
+  const pastDays = weather && history ? similarPastDays(history, perceivedTemp(weather)) : []
   const similar = weather ? findSimilar(outfits, perceivedTemp(weather)).slice(0, 8) : []
 
   async function onPhoto(file: File | undefined) {
@@ -220,11 +220,11 @@ export function Today({
       {pastDays.length > 0 && (
         <Reveal as="section" className="section">
           <div className="section-head">
-            <h2>El año pasado</h2>
+            <h2>Otros días parecidos</h2>
             <span className="badge">{pastDays.length === 1 ? '1 día' : `${pastDays.length} días`}</span>
           </div>
           <p className="muted small">
-            Días parecidos a hoy, los más cercanos a esta fecha. Mira en tu galería qué te pusiste.
+            Desde enero de 2026, los más cercanos a hoy. Mira en tu galería qué te pusiste.
           </p>
           <ul className="past-days">
             {pastDays.map((d) => {
