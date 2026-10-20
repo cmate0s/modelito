@@ -11,9 +11,10 @@ import {
 } from '@phosphor-icons/react'
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { saveOutfit } from '../lib/db.ts'
-import { longToday } from '../lib/format.ts'
+import { formatDateYear, longToday } from '../lib/format.ts'
 import { useObjectUrl } from '../lib/hooks.ts'
 import { shrinkPhoto } from '../lib/image.ts'
+import { fetchLastYear, similarLastYear, type PastDay } from '../lib/lastYear.ts'
 import { useReveal } from '../lib/reveal.ts'
 import { findSimilar } from '../lib/similar.ts'
 import type { Comfort, Outfit, Place, WeatherSnapshot } from '../lib/types.ts'
@@ -87,7 +88,20 @@ export function Today({
     setChoosingCity(false)
   }
 
+  const [lastYear, setLastYear] = useState<PastDay[] | null>(null)
+  useEffect(() => {
+    if (!place) return
+    let cancelled = false
+    fetchLastYear(place)
+      .then((days) => !cancelled && setLastYear(days))
+      .catch(() => !cancelled && setLastYear(null))
+    return () => {
+      cancelled = true
+    }
+  }, [place])
+
   const weather = state.status === 'ready' ? state.weather : undefined
+  const pastDays = weather && lastYear ? similarLastYear(lastYear, perceivedTemp(weather)) : []
   const similar = weather ? findSimilar(outfits, perceivedTemp(weather)).slice(0, 8) : []
 
   async function onPhoto(file: File | undefined) {
@@ -200,6 +214,48 @@ export function Today({
               <Thumb key={o.id} outfit={o} index={i} onOpen={onOpen} />
             ))}
           </div>
+        </Reveal>
+      )}
+
+      {pastDays.length > 0 && (
+        <Reveal as="section" className="section">
+          <div className="section-head">
+            <h2>El año pasado</h2>
+            <span className="badge">{pastDays.length === 1 ? '1 día' : `${pastDays.length} días`}</span>
+          </div>
+          <p className="muted small">
+            Días parecidos a hoy, los más cercanos a esta fecha. Mira en tu galería qué te pusiste.
+          </p>
+          <ul className="past-days">
+            {pastDays.map((d) => {
+              const mine = outfits.find((o) => o.date === d.date)
+              const body = (
+                <>
+                  <span className="weather-glyph small">
+                    <WeatherIcon code={d.code} size={32} />
+                  </span>
+                  <span className="past-main">
+                    <span className="past-date">{formatDateYear(d.date)}</span>
+                    <span className="muted small">
+                      <WeatherLabel code={d.code} /> · se sintió de {Math.round(d.aMin)}° a {Math.round(d.aMax)}°
+                    </span>
+                  </span>
+                </>
+              )
+              return (
+                <li key={d.date}>
+                  {mine ? (
+                    <button className="past-row" onClick={() => onOpen(mine)}>
+                      {body}
+                      <span className="badge">Tu modelito</span>
+                    </button>
+                  ) : (
+                    <div className="past-row">{body}</div>
+                  )}
+                </li>
+              )
+            })}
+          </ul>
         </Reveal>
       )}
 
