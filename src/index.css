@@ -528,6 +528,11 @@ input[type='number']::-webkit-inner-spin-button {
   color: var(--muted);
   font-size: 10px;
 }
+.stat-note {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 14px;
+}
 .stat dd {
   font-family: var(--display);
   font-size: 20px;
@@ -824,6 +829,15 @@ button.past-row {
   width: 96px;
   height: 96px;
   margin-bottom: 0;
+}
+
+.import {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.empty-state .import {
+  align-items: center;
 }
 
 /* ───── Hoja de detalle ───── */

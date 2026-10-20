@@ -16,9 +16,9 @@ import { useObjectUrl } from '../lib/hooks.ts'
 import { shrinkPhoto } from '../lib/image.ts'
 import { fetchPastDays, similarPastDays, type PastDay } from '../lib/pastDays.ts'
 import { useReveal } from '../lib/reveal.ts'
-import { findSimilar } from '../lib/similar.ts'
+import { findSimilarDays } from '../lib/similar.ts'
 import type { Comfort, Outfit, Place, WeatherSnapshot } from '../lib/types.ts'
-import { fetchWeather, loadPlace, locate, perceivedTemp, savePlace, searchCity } from '../lib/weather.ts'
+import { dayRange, fetchWeather, loadPlace, locate, savePlace, searchCity } from '../lib/weather.ts'
 import { LineArt } from './LineArt.tsx'
 import { PageHeader } from './PageHeader.tsx'
 import { ComfortPicker, Stars } from './Rating.tsx'
@@ -101,8 +101,9 @@ export function Today({
   }, [place])
 
   const weather = state.status === 'ready' ? state.weather : undefined
-  const pastDays = weather && history ? similarPastDays(history, perceivedTemp(weather)) : []
-  const similar = weather ? findSimilar(outfits, perceivedTemp(weather)).slice(0, 8) : []
+  const today = weather ? dayRange(weather) : undefined
+  const pastDays = today && history ? similarPastDays(history, today) : []
+  const similar = today ? findSimilarDays(outfits, today).slice(0, 8) : []
 
   async function onPhoto(file: File | undefined) {
     if (!file) return
@@ -168,8 +169,8 @@ export function Today({
               </span>
             </div>
             <dl className="stats">
-              <Stat icon={<ThermometerIcon size={14} weight="light" />} label="Sensación">
-                {Math.round(weather.aMin ?? weather.tMin)}° a {Math.round(weather.aMax ?? weather.tMax)}°
+              <Stat icon={<ThermometerIcon size={14} weight="light" />} label="Sensación" note="de 7 a 19 h">
+                {Math.round(today!.min)}° a {Math.round(today!.max)}°
               </Stat>
               {weather.humidity != null && (
                 <Stat icon={<DropIcon size={14} weight="light" />} label="Humedad">
@@ -206,9 +207,9 @@ export function Today({
         <Reveal as="section" className="section">
           <div className="section-head">
             <h2>Días como hoy</h2>
-            <span className="badge">Media del día {Math.round(perceivedTemp(weather))}°</span>
+            <span className="badge">{Math.round(today!.min)}° a {Math.round(today!.max)}°</span>
           </div>
-          <p className="muted small">Lo que te pusiste con una sensación parecida. Arriba, lo que mejor te funcionó.</p>
+          <p className="muted small">Lo que te pusiste con mínima y máxima parecidas (a menos de 2°). Arriba, lo que mejor te funcionó.</p>
           <div className="strip">
             {similar.map((o, i) => (
               <Thumb key={o.id} outfit={o} index={i} onOpen={onOpen} />
@@ -224,7 +225,7 @@ export function Today({
             <span className="badge">{pastDays.length === 1 ? '1 día' : `${pastDays.length} días`}</span>
           </div>
           <p className="muted small">
-            Desde enero de 2026, los más cercanos a hoy. Mira en tu galería qué te pusiste.
+            Desde enero de 2026, con mínima y máxima (de 7 a 19 h) a menos de 2° de las de hoy. Los más cercanos a esta fecha.
           </p>
           <ul className="past-days">
             {pastDays.map((d) => {
@@ -354,7 +355,7 @@ function Reveal({
   )
 }
 
-function Stat({ icon, label, children }: { icon: ReactNode; label: string; children: ReactNode }) {
+function Stat({ icon, label, note, children }: { icon: ReactNode; label: string; note?: string; children: ReactNode }) {
   return (
     <div className="stat">
       <dt>
@@ -362,6 +363,7 @@ function Stat({ icon, label, children }: { icon: ReactNode; label: string; child
         {label}
       </dt>
       <dd>{children}</dd>
+      {note && <span className="stat-note">{note}</span>}
     </div>
   )
 }

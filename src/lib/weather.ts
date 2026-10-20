@@ -50,12 +50,14 @@ export async function fetchWeather(place: Place): Promise<WeatherSnapshot> {
     longitude: String(place.lon),
     current: 'temperature_2m,apparent_temperature,relative_humidity_2m,precipitation,weather_code,wind_speed_10m',
     daily: 'temperature_2m_max,temperature_2m_min,apparent_temperature_max,apparent_temperature_min',
+    hourly: 'apparent_temperature',
     timezone: 'auto',
     forecast_days: '1',
   })
   const res = await fetch(`https://api.open-meteo.com/v1/forecast?${params}`)
   if (!res.ok) throw new Error('No se pudo obtener el tiempo')
   const d = await res.json()
+  const day = daytimeRange(d.hourly.time, d.hourly.apparent_temperature)[d.hourly.time[0].slice(0, 10)]
   return {
     temp: d.current.temperature_2m,
     feelsLike: d.current.apparent_temperature,
@@ -67,9 +69,38 @@ export async function fetchWeather(place: Place): Promise<WeatherSnapshot> {
     aMax: d.daily.apparent_temperature_max[0],
     aMin: d.daily.apparent_temperature_min[0],
     humidity: d.current.relative_humidity_2m,
+    dMin: day?.min,
+    dMax: day?.max,
   }
 }
 
+export const DAY_START = 7
+export const DAY_END = 19
+
+/** Mínima y máxima de la sensación térmica entre las 7 y las 19 h (hora local) de cada fecha de una serie horaria. */
+export function daytimeRange(times: string[], values: (number | null)[]): Record<string, { min: number; max: number }> {
+  const out: Record<string, { min: number; max: number }> = {}
+  times.forEach((t, i) => {
+    const v = values[i]
+    const hour = Number(t.slice(11, 13))
+    if (v == null || hour < DAY_START || hour > DAY_END) return
+    const date = t.slice(0, 10)
+    const r = out[date]
+    if (!r) out[date] = { min: v, max: v }
+    else {
+      r.min = Math.min(r.min, v)
+      r.max = Math.max(r.max, v)
+    }
+  })
+  return out
+}
+
 /** Sensación térmica media del día; usa la temperatura normal si el modelito no guardó la sensación. */
+/** Mínima y máxima que cuentan para comparar días: la de 7 a 19 h, o la del día entero si el modelito es antiguo. */
+export const dayRange = (w: WeatherSnapshot) => ({
+  min: w.dMin ?? w.aMin ?? w.tMin,
+  max: w.dMax ?? w.aMax ?? w.tMax,
+})
+
 export const perceivedTemp = (w: WeatherSnapshot) =>
   ((w.aMax ?? w.tMax) + (w.aMin ?? w.tMin)) / 2

@@ -64,7 +64,7 @@ export default function App() {
             }}
           />
         )}
-        {tab === 'history' && <History outfits={outfits} onOpen={setOpen} onNew={() => go('today')} />}
+        {tab === 'history' && <History outfits={outfits} onOpen={setOpen} onNew={() => go('today')} onImported={notify} />}
         {tab === 'settings' && <Settings count={outfits.length} onImported={notify} />}
       </main>
 

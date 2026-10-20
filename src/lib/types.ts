@@ -11,6 +11,9 @@ export interface WeatherSnapshot {
   /** Sensación térmica máxima/mínima del día y humedad; ausentes en modelitos antiguos. */
   aMax?: number
   aMin?: number
+  /** Sensación térmica mínima y máxima entre las 7 y las 19 h; ausentes en modelitos anteriores. */
+  dMin?: number
+  dMax?: number
   humidity?: number
 }
 
@@ -30,4 +33,6 @@ export interface Outfit {
   rating: number
   comfort: Comfort
   notes: string
+  /** Identifica la foto cargada desde la galería, para no cargarla dos veces. */
+  importKey?: string
 }

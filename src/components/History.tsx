@@ -2,6 +2,7 @@ import { MagnifyingGlassIcon, StarIcon } from '@phosphor-icons/react'
 import { useMemo, useState } from 'react'
 import { findSimilar, TEMP_RANGE } from '../lib/similar.ts'
 import type { Outfit } from '../lib/types.ts'
+import { ImportPhotos } from './ImportPhotos.tsx'
 import { LineArt } from './LineArt.tsx'
 import { PageHeader } from './PageHeader.tsx'
 import { Thumb } from './Thumb.tsx'
@@ -10,10 +11,12 @@ export function History({
   outfits,
   onOpen,
   onNew,
+  onImported,
 }: {
   outfits: Outfit[]
   onOpen: (o: Outfit) => void
   onNew: () => void
+  onImported: (message: string) => void
 }) {
   const [temp, setTemp] = useState('')
   const [topOnly, setTopOnly] = useState(false)
@@ -40,6 +43,8 @@ export function History({
           <button className="btn primary" onClick={onNew}>
             Registrar el de hoy
           </button>
+          <p className="muted small">¿Ya tienes fotos de otros días? Cárgalas y se guardan con el tiempo que hizo.</p>
+          <ImportPhotos outfits={outfits} onDone={onImported} />
         </div>
       </div>
     )
@@ -48,6 +53,7 @@ export function History({
   return (
     <div className="page">
       <PageHeader title="Historial" subtitle={subtitle} />
+      <ImportPhotos outfits={outfits} onDone={onImported} />
       <div className="filters">
         <label className="search">
           <MagnifyingGlassIcon size={20} weight="light" aria-hidden="true" />

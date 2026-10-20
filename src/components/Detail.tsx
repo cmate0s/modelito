@@ -4,6 +4,7 @@ import { deleteOutfit, saveOutfit } from '../lib/db.ts'
 import { formatDate } from '../lib/format.ts'
 import { useObjectUrl } from '../lib/hooks.ts'
 import type { Outfit } from '../lib/types.ts'
+import { dayRange } from '../lib/weather.ts'
 import { ComfortPicker, Stars } from './Rating.tsx'
 import { WeatherIcon, WeatherLabel } from './WeatherIcon.tsx'
 
@@ -93,7 +94,7 @@ export function Detail({
             </span>
             <div>
               <p className="strong">
-                Se sentía de {Math.round(w.aMin ?? w.tMin)}° a {Math.round(w.aMax ?? w.tMax)}°
+                Se sentía de {Math.round(dayRange(w).min)}° a {Math.round(dayRange(w).max)}°{w.dMin != null && ' (7–19 h)'}
               </p>
               <p className="muted small">
                 <WeatherLabel code={w.code} />

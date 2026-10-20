@@ -1,21 +1,19 @@
+import { isoDate as iso } from './format.ts'
+import { isSimilarRange, rangeGap, type TempRange } from './similar.ts'
 import type { Place } from './types.ts'
+import { daytimeRange } from './weather.ts'
 
 export interface PastDay {
   date: string
-  /** Sensación térmica media, máxima y mínima del día. */
-  feel: number
+  /** Sensación térmica mínima y máxima entre las 7 y las 19 h. */
   aMax: number
   aMin: number
   code: number
 }
 
 export const MAX_PAST_DAYS = 5
-const RANGE = 3
-
 /** Primer día que se tiene en cuenta: desde ahí empiezan las galerías de quien usa la app. */
 export const SINCE = '2026-01-01'
-
-const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 
 /** Días desde SINCE hasta ayer (tiempo real registrado, no previsión) en el lugar elegido. */
 export async function fetchPastDays(place: Place, today = new Date()): Promise<PastDay[]> {
@@ -26,18 +24,18 @@ export async function fetchPastDays(place: Place, today = new Date()): Promise<P
     longitude: String(place.lon),
     start_date: SINCE,
     end_date: iso(yesterday),
-    daily: 'apparent_temperature_max,apparent_temperature_min,weather_code',
+    daily: 'weather_code',
+    hourly: 'apparent_temperature',
     timezone: 'auto',
   })
   const res = await fetch(`https://archive-api.open-meteo.com/v1/archive?${params}`)
   if (!res.ok) throw new Error('No se pudo consultar los días anteriores')
   const d = await res.json()
+  const range = daytimeRange(d.hourly.time, d.hourly.apparent_temperature)
   const out: PastDay[] = []
   for (let i = 0; i < d.daily.time.length; i++) {
-    const aMax = d.daily.apparent_temperature_max[i]
-    const aMin = d.daily.apparent_temperature_min[i]
-    if (aMax == null || aMin == null) continue
-    out.push({ date: d.daily.time[i], aMax, aMin, feel: (aMax + aMin) / 2, code: d.daily.weather_code[i] ?? 0 })
+    const r = range[d.daily.time[i]]
+    if (r) out.push({ date: d.daily.time[i], aMin: r.min, aMax: r.max, code: d.daily.weather_code[i] ?? 0 })
   }
   return out
 }
@@ -51,12 +49,16 @@ function calendarDistance(date: string, today: Date): number {
   return Math.min(diff, 365 - diff)
 }
 
-/** Días desde SINCE con sensación parecida a la de hoy; como mucho 5, los más cercanos a esta fecha del calendario. */
-export function similarPastDays(days: PastDay[], feel: number, today = new Date()): PastDay[] {
+/** Días desde SINCE con mínima y máxima parecidas a las de hoy; como mucho 5, los más cercanos a esta fecha del calendario. */
+export function similarPastDays(days: PastDay[], today: TempRange, now = new Date()): PastDay[] {
   return days
-    .filter((day) => Math.abs(day.feel - feel) <= RANGE)
-    .map((day) => ({ day, near: calendarDistance(day.date, today) }))
-    .sort((a, b) => a.near - b.near || Math.abs(a.day.feel - feel) - Math.abs(b.day.feel - feel))
+    .filter((day) => isSimilarRange({ min: day.aMin, max: day.aMax }, today))
+    .map((day) => ({ day, near: calendarDistance(day.date, now) }))
+    .sort(
+      (a, b) =>
+        a.near - b.near ||
+        rangeGap({ min: a.day.aMin, max: a.day.aMax }, today) - rangeGap({ min: b.day.aMin, max: b.day.aMax }, today),
+    )
     .slice(0, MAX_PAST_DAYS)
     .map((x) => x.day)
     .sort((a, b) => a.date.localeCompare(b.date))
