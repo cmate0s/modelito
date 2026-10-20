@@ -1,8 +1,8 @@
 import { MagnifyingGlassIcon, StarIcon } from '@phosphor-icons/react'
 import { useMemo, useState } from 'react'
-import { art, sticker } from '../lib/art.ts'
 import { findSimilar, TEMP_RANGE } from '../lib/similar.ts'
 import type { Outfit } from '../lib/types.ts'
+import { LineArt } from './LineArt.tsx'
 import { PageHeader } from './PageHeader.tsx'
 import { Thumb } from './Thumb.tsx'
 
@@ -32,9 +32,9 @@ export function History({
   if (count === 0) {
     return (
       <div className="page">
-        <PageHeader title="Historial" decoration="hanger" />
+        <PageHeader title="Historial" />
         <div className="empty-state">
-          <img className="empty-art" src={art('historial')} width={176} height={176} alt="" />
+          <LineArt name="sweater" className="empty-art" />
           <h2>Tu armario de días empieza hoy</h2>
           <p className="muted">Guarda tu primer modelito y aquí irás viendo todos, con el tiempo que hacía.</p>
           <button className="btn primary" onClick={onNew}>
@@ -47,10 +47,10 @@ export function History({
 
   return (
     <div className="page">
-      <PageHeader title="Historial" subtitle={subtitle} decoration="hanger" />
+      <PageHeader title="Historial" subtitle={subtitle} />
       <div className="filters">
         <label className="search">
-          <MagnifyingGlassIcon size={20} aria-hidden="true" />
+          <MagnifyingGlassIcon size={20} weight="light" aria-hidden="true" />
           <input
             type="number"
             inputMode="decimal"
@@ -72,7 +72,7 @@ export function History({
       {temp && <p className="muted small">Días con sensación entre {parseFloat(temp) - TEMP_RANGE}° y {parseFloat(temp) + TEMP_RANGE}°</p>}
       {shown.length === 0 ? (
         <div className="empty-state compact">
-          <img className="empty-sticker" src={sticker('cloud')} alt="" />
+          <LineArt name="sunglasses" className="empty-art" />
           <p>Nada con esos filtros.</p>
           <button
             className="btn ghost"

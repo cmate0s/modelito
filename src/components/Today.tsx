@@ -10,7 +10,6 @@ import {
   WindIcon,
 } from '@phosphor-icons/react'
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
-import { art } from '../lib/art.ts'
 import { saveOutfit } from '../lib/db.ts'
 import { longToday } from '../lib/format.ts'
 import { useObjectUrl } from '../lib/hooks.ts'
@@ -18,8 +17,8 @@ import { shrinkPhoto } from '../lib/image.ts'
 import { useReveal } from '../lib/reveal.ts'
 import { findSimilar } from '../lib/similar.ts'
 import type { Comfort, Outfit, Place, WeatherSnapshot } from '../lib/types.ts'
-import { weatherTint } from '../lib/weatherKind.ts'
 import { fetchWeather, loadPlace, locate, perceivedTemp, savePlace, searchCity } from '../lib/weather.ts'
+import { LineArt } from './LineArt.tsx'
 import { PageHeader } from './PageHeader.tsx'
 import { ComfortPicker, Stars } from './Rating.tsx'
 import { Thumb } from './Thumb.tsx'
@@ -131,13 +130,13 @@ export function Today({
 
   return (
     <div className="page">
-      <PageHeader title="Hoy" subtitle={longToday()} decoration="sun" />
+      <PageHeader title="Hoy" subtitle={longToday()} />
 
-      <Reveal className="card weather" style={weather ? ({ '--tint': weatherTint(weather.code) } as CSSProperties) : undefined}>
+      <Reveal className="card weather">
         {state.status === 'loading' && <WeatherSkeleton />}
         {state.status === 'error' && (
           <p className="inline-error">
-            <WarningCircleIcon size={20} weight="duotone" aria-hidden="true" />
+            <WarningCircleIcon size={20} weight="light" aria-hidden="true" />
             {state.message}
           </p>
         )}
@@ -151,19 +150,19 @@ export function Today({
                 </p>
               </div>
               <span className="weather-glyph">
-                <WeatherIcon code={weather.code} size={96} />
+                <WeatherIcon code={weather.code} size={72} />
               </span>
             </div>
             <dl className="stats">
-              <Stat icon={<ThermometerIcon size={16} weight="duotone" />} label="Sensación">
+              <Stat icon={<ThermometerIcon size={14} weight="light" />} label="Sensación">
                 {Math.round(weather.aMin ?? weather.tMin)}° a {Math.round(weather.aMax ?? weather.tMax)}°
               </Stat>
               {weather.humidity != null && (
-                <Stat icon={<DropIcon size={16} weight="duotone" />} label="Humedad">
+                <Stat icon={<DropIcon size={14} weight="light" />} label="Humedad">
                   {Math.round(weather.humidity)}%
                 </Stat>
               )}
-              <Stat icon={<WindIcon size={16} weight="duotone" />} label="Viento">
+              <Stat icon={<WindIcon size={14} weight="light" />} label="Viento">
                 {Math.round(weather.wind)} km/h
               </Stat>
             </dl>
@@ -174,7 +173,7 @@ export function Today({
           aria-expanded={choosingCity}
           onClick={() => setChoosingCity((v) => !v)}
         >
-          <MapPinIcon size={16} weight="fill" aria-hidden="true" />
+          <MapPinIcon size={16} weight="light" aria-hidden="true" />
           {place?.name ?? 'Elegir ubicación'}
         </button>
         {choosingCity && (
@@ -193,7 +192,7 @@ export function Today({
         <Reveal as="section" className="section">
           <div className="section-head">
             <h2>Días como hoy</h2>
-            <span className="badge">media del día {Math.round(perceivedTemp(weather))}°</span>
+            <span className="badge">Media del día {Math.round(perceivedTemp(weather))}°</span>
           </div>
           <p className="muted small">Lo que te pusiste con una sensación parecida. Arriba, lo que mejor te funcionó.</p>
           <div className="strip">
@@ -206,19 +205,16 @@ export function Today({
 
       {outfits.length === 0 && (
         <Reveal as="section" className="card intro">
-          <img className="intro-art" src={art('bienvenida')} width={140} height={140} alt="" />
+          <LineArt name="blazer" className="intro-art" />
           <h2>Así funciona</h2>
           <ol className="steps">
             <li>
-              <img className="step-art" src={art('paso-foto')} width={56} height={56} alt="" />
               <span>Haz una foto de lo que llevas. El tiempo del día se guarda solo.</span>
             </li>
             <li>
-              <img className="step-art" src={art('paso-valora')} width={56} height={56} alt="" />
               <span>Valóralo y di si pasaste frío, calor o estuviste a gusto.</span>
             </li>
             <li>
-              <img className="step-art" src={art('paso-tiempo')} width={56} height={56} alt="" />
               <span>Cuando vuelva a hacer un día parecido, aquí verás qué te pusiste.</span>
             </li>
           </ol>
@@ -232,7 +228,7 @@ export function Today({
             <img src={photoUrl} alt="Vista previa del modelito" />
           ) : (
             <div className="photo-empty">
-              <img src={art('hoy')} width={132} height={132} alt="" />
+              <LineArt name="trench" />
               <p>Añade una foto</p>
               <p className="muted small">Mejor de cuerpo entero, frente al espejo</p>
             </div>
@@ -240,11 +236,11 @@ export function Today({
         </div>
         <div className="row">
           <PhotoButton capture onFile={onPhoto}>
-            <CameraIcon size={20} weight="bold" aria-hidden="true" />
+            <CameraIcon size={18} weight="light" aria-hidden="true" />
             {photo ? 'Repetir' : 'Hacer foto'}
           </PhotoButton>
           <PhotoButton onFile={onPhoto}>
-            <ImagesIcon size={20} weight="bold" aria-hidden="true" />
+            <ImagesIcon size={18} weight="light" aria-hidden="true" />
             Galería
           </PhotoButton>
         </div>
@@ -271,7 +267,7 @@ export function Today({
         </div>
         {error && (
           <p className="inline-error" role="alert">
-            <WarningCircleIcon size={20} weight="duotone" aria-hidden="true" />
+            <WarningCircleIcon size={20} weight="light" aria-hidden="true" />
             {error}
           </p>
         )}
@@ -383,7 +379,7 @@ function CityPicker({ onPick, onLocate }: { onPick: (p: Place) => void; onLocate
   return (
     <div className="city-picker">
       <form onSubmit={search} className="search">
-        <MagnifyingGlassIcon size={20} aria-hidden="true" />
+        <MagnifyingGlassIcon size={20} weight="light" aria-hidden="true" />
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
@@ -401,7 +397,7 @@ function CityPicker({ onPick, onLocate }: { onPick: (p: Place) => void; onLocate
           {results.map((p) => (
             <li key={`${p.lat},${p.lon}`}>
               <button onClick={() => onPick(p)}>
-                <MapPinIcon size={16} weight="duotone" aria-hidden="true" />
+                <MapPinIcon size={16} weight="light" aria-hidden="true" />
                 {p.name}
               </button>
             </li>
@@ -409,7 +405,7 @@ function CityPicker({ onPick, onLocate }: { onPick: (p: Place) => void; onLocate
         </ul>
       )}
       <button className="btn ghost" onClick={onLocate}>
-        <CrosshairIcon size={20} aria-hidden="true" />
+        <CrosshairIcon size={18} weight="light" aria-hidden="true" />
         Usar mi ubicación
       </button>
     </div>

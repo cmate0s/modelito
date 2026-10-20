@@ -14,15 +14,15 @@ npm run build    # build de producción en dist/
 
 ## Diseño
 
-Estilo «caramelo»: alegre, redondo y táctil. La paleta sale del icono (cielo, coral, sol y la mascota menta) y se define en variables CSS al principio de `src/index.css`, con versión clara y oscura. Títulos y botones usan Fredoka; el texto, Manrope.
+Estilo «atelier»: sobrio y editorial, con marfil, tinta y un toque de camel (versión clara y oscura, en variables CSS al principio de `src/index.css`). Los títulos y cifras usan Cormorant Garamond; el texto, Manrope; las etiquetas, Manrope en mayúsculas espaciadas. Los iconos son Phosphor en trazo fino.
 
-Los gráficos (icono, ilustraciones de pantallas vacías y pasos, estados del tiempo, caras de frío/perfecto/calor, pegatinas del fondo y confeti, e imagen para compartir) se generaron en Google Flow (Nano Banana) tomando la mascota como referencia de estilo. Los originales están en `design/` y este script los recorta, quita el fondo magenta de las pegatinas y los optimiza:
+Los gráficos son bocetos de moda en línea fina generados en Google Flow (Nano Banana): una hoja de seis dibujos (`design/atelier-lineart.jpg`). El script los recorta, los convierte en máscaras (solo canal alfa, para que se tiñan con el color del texto en claro y oscuro) y genera también el monograma «M» de los iconos de la PWA y la imagen para compartir:
 
 ```bash
-python3 design/build-assets.py     # requiere Pillow y numpy
+python3 design/build-assets.py     # requiere Pillow, numpy, fonttools y brotli, y haber hecho npm install
 ```
 
-Salidas: iconos de la PWA e `og-image.jpg` en `public/`, y `src/assets/{art,weather,feel,stickers}/*.webp`. `src/lib/art.ts` los expone al código.
+Salidas: iconos de la PWA e `og-image.jpg` en `public/`, y `src/assets/art/*.webp`. `src/lib/art.ts` los expone y `LineArt` los pinta.
 
 - Las fotos se reducen a 1280 px (JPEG) antes de guardarse.
 - Ajustes → "Descargar copia" exporta todo a JSON; "Restaurar copia" lo importa.

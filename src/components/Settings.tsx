@@ -37,10 +37,10 @@ export function Settings({ count, onImported }: { count: number; onImported: (ms
 
   return (
     <div className="page">
-      <PageHeader title="Ajustes" decoration="sparkle" />
+      <PageHeader title="Ajustes" />
       <section className="card">
         <div className="card-icon">
-          <CloudArrowDownIcon size={24} weight="duotone" aria-hidden="true" />
+          <CloudArrowDownIcon size={22} weight="light" aria-hidden="true" />
         </div>
         <h2>Copia de seguridad</h2>
         <p className="muted">
@@ -49,11 +49,11 @@ export function Settings({ count, onImported }: { count: number; onImported: (ms
         </p>
         <div className="row">
           <button className="btn primary" onClick={doExport} disabled={count === 0 || busy}>
-            <DownloadSimpleIcon size={20} weight="bold" aria-hidden="true" />
+            <DownloadSimpleIcon size={18} weight="light" aria-hidden="true" />
             {busy ? 'Preparando…' : 'Descargar'}
           </button>
           <button className="btn" onClick={() => fileRef.current?.click()}>
-            <UploadSimpleIcon size={20} weight="bold" aria-hidden="true" />
+            <UploadSimpleIcon size={18} weight="light" aria-hidden="true" />
             Restaurar
           </button>
         </div>
@@ -74,8 +74,8 @@ export function Settings({ count, onImported }: { count: number; onImported: (ms
         )}
       </section>
       <section className="card">
-        <div className="card-icon mint">
-          <InfoIcon size={24} weight="duotone" aria-hidden="true" />
+        <div className="card-icon">
+          <InfoIcon size={22} weight="light" aria-hidden="true" />
         </div>
         <h2>Sobre Modelito</h2>
         <p className="muted">

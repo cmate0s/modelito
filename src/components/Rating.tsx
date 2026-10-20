@@ -1,5 +1,4 @@
-import { StarIcon } from '@phosphor-icons/react'
-import { feelArt } from '../lib/art.ts'
+import { StarIcon, ThermometerColdIcon, ThermometerHotIcon, ThermometerIcon, type Icon } from '@phosphor-icons/react'
 import { COMFORT_LABEL } from '../lib/format.ts'
 import type { Comfort } from '../lib/types.ts'
 
@@ -18,7 +17,7 @@ export function Stars({
     return (
       <span className="stars" aria-label={`${value} de 5 estrellas`}>
         {[1, 2, 3, 4, 5].map((n) => (
-          <StarIcon key={n} size={size} weight="fill" className={n <= value ? 'on' : ''} />
+          <StarIcon key={n} size={size} weight={n <= value ? 'fill' : 'light'} className={n <= value ? 'on' : ''} />
         ))}
       </span>
     )
@@ -35,16 +34,27 @@ export function Stars({
           className={n <= value ? 'on' : ''}
           onClick={() => onChange(n)}
         >
-          <StarIcon size={38} weight="fill" />
+          <StarIcon size={36} weight={n <= value ? 'fill' : 'light'} />
         </button>
       ))}
     </div>
   )
 }
 
-/** La mascota con la cara de cada sensación: tiritando, a gusto o sudando. */
+const COMFORT_GLYPH: Record<Comfort, Icon> = {
+  cold: ThermometerColdIcon,
+  ok: ThermometerIcon,
+  hot: ThermometerHotIcon,
+}
+
+/** Termómetro de cada sensación: frío, a gusto o calor. Hereda el color del texto. */
 export function ComfortIcon({ comfort, size = 16 }: { comfort: Comfort; size?: number }) {
-  return <img className="comfort-art" src={feelArt(comfort)} width={size} height={size} alt={COMFORT_LABEL[comfort]} />
+  const Glyph = COMFORT_GLYPH[comfort]
+  return (
+    <span className="comfort-icon" role="img" aria-label={COMFORT_LABEL[comfort]}>
+      <Glyph size={size} weight="light" />
+    </span>
+  )
 }
 
 export function ComfortPicker({
@@ -66,7 +76,7 @@ export function ComfortPicker({
           className={value === c ? 'on' : ''}
           onClick={() => onChange(c)}
         >
-          <ComfortIcon comfort={c} size={64} />
+          <ComfortIcon comfort={c} size={30} />
           {COMFORT_LABEL[c]}
         </button>
       ))}

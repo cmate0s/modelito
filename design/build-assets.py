@@ -1,218 +1,180 @@
 #!/usr/bin/env python3
-"""Genera los assets visuales de Modelito a partir de las hojas creadas en Google Flow (carpeta design/).
+"""Genera los assets visuales de Modelito (estilo «atelier»).
 
-    python3 design/build-assets.py        # requiere Pillow y numpy
+    python3 design/build-assets.py        # requiere Pillow, numpy y fonttools+brotli; haber hecho `npm install`
 
-Entradas  (design/): mascot.jpg  flow-empties.jpg  flow-weather.jpg  flow-feel.jpg  flow-stickers.jpg
+Entrada  (design/): atelier-lineart.jpg  hoja de 6 bocetos de moda en línea fina (3×2) creada en Google Flow
+Fuentes: Cormorant Garamond y Manrope, tomadas de node_modules (@fontsource-variable).
 Salidas:
   public/            iconos de la PWA (192, 512, maskable, apple-touch, favicon) e imagen para compartir (og-image.jpg)
-  src/assets/art/        ilustraciones de pantallas vacías y de «Así funciona»
-  src/assets/weather/    8 estados del tiempo
-  src/assets/feel/       frío / perfecto / calor
-  src/assets/stickers/   pegatinas sueltas con transparencia (fondo magenta eliminado)
+  src/assets/art/    bocetos recortados con solo canal alfa: la app los tiñe con el color del texto (CSS mask)
 """
-import random
+import tempfile
 from pathlib import Path
 
 import numpy as np
-from PIL import Image, ImageChops, ImageDraw, ImageFilter, ImageFont, ImageOps
+from fontTools.ttLib import TTFont
+from PIL import Image, ImageDraw, ImageFont
 
 ROOT = Path(__file__).resolve().parent.parent
 DESIGN = ROOT / "design"
 PUB = ROOT / "public"
-ASSETS = ROOT / "src" / "assets"
-FONT_BOLD = "/usr/share/fonts/truetype/noto/NotoSans-Bold.ttf"
+ART = ROOT / "src" / "assets" / "art"
+FONTS = ROOT / "node_modules" / "@fontsource-variable"
 
-INK = (42, 30, 74)
-CREAM = (255, 246, 229)
+INK = (27, 25, 23)
+IVORY = (246, 242, 236)
+CAMEL = (164, 125, 82)
+MUTED = (111, 102, 92)
+LINE = (201, 192, 177)
 
-# Orden de lectura (izquierda→derecha, arriba→abajo) de cada hoja
-EMPTIES = ["hoy", "historial", "paso-foto", "paso-tiempo", "paso-valora", "bienvenida"]  # 3×2
-WEATHER = ["clear", "partly", "cloudy", "fog", "rain", "showers", "snow", "storm"]  # 4×2
-FEEL = ["cold", "ok", "hot"]  # 3×1
-STICKERS = [
-    "hanger", "socks", "cap", "umbrella",
-    "sun", "heart", "star", "sparkle",
-    "sneaker", "sunglasses", "scarf", "cloud",
-]  # 4×3
+# Orden de lectura de la hoja 3×2, y cuáles se usan dentro de la app
+SHEET = ["blazer", "sweater", "boot", "bag", "trench", "sunglasses"]
+IN_APP = ["blazer", "sweater", "trench", "sunglasses"]
 
 
-# ───────────────────────── utilidades ─────────────────────────
+# ───────────────────────── tipografía ─────────────────────────
 
-def runs(profile: np.ndarray, min_len: int) -> list[tuple[int, int]]:
-    """Tramos consecutivos True de un perfil 1D: (inicio, fin) de cada baldosa."""
-    out, start = [], None
-    for i, on in enumerate(profile):
-        if on and start is None:
-            start = i
-        elif not on and start is not None:
-            if i - start >= min_len:
-                out.append((start, i))
-            start = None
-    if start is not None and len(profile) - start >= min_len:
-        out.append((start, len(profile)))
+_ttf_cache: dict[str, str] = {}
+
+
+def font(family: str, style: str, size: int, wght: int) -> ImageFont.FreeTypeFont:
+    """Carga una fuente variable de @fontsource-variable (woff2 → ttf temporal) fijando el peso."""
+    src = FONTS / family / "files" / f"{family}-latin-wght-{style}.woff2"
+    if str(src) not in _ttf_cache:
+        out = Path(tempfile.mkdtemp()) / f"{family}-{style}.ttf"
+        f = TTFont(str(src))
+        f.flavor = None
+        f.save(str(out))
+        _ttf_cache[str(src)] = str(out)
+    ft = ImageFont.truetype(_ttf_cache[str(src)], size)
+    ft.set_variation_by_axes([wght])
+    return ft
+
+
+def spaced(draw: ImageDraw.ImageDraw, xy: tuple[int, int], text: str, ft: ImageFont.FreeTypeFont, fill, tracking: float) -> None:
+    """Texto con espaciado entre letras (Pillow no lo trae)."""
+    x, y = xy
+    for ch in text:
+        draw.text((x, y), ch, font=ft, fill=fill)
+        x += draw.textlength(ch, font=ft) + tracking
+
+
+def centered(draw: ImageDraw.ImageDraw, center: tuple[float, float], text: str, ft: ImageFont.FreeTypeFont, fill) -> None:
+    """Centra el texto por su caja visible (no por el avance tipográfico)."""
+    l, t, r, b = draw.textbbox((0, 0), text, font=ft)
+    draw.text((center[0] - (l + r) / 2, center[1] - (t + b) / 2), text, font=ft, fill=fill)
+
+
+# ───────────────────────── bocetos ─────────────────────────
+
+def ink_alpha(gray: np.ndarray) -> np.ndarray:
+    """Luminancia → opacidad de tinta. Se refuerza un poco el trazo para que aguante al reducirlo."""
+    ink = 1.0 - gray.astype(np.float32) / 255.0
+    return np.clip((ink - 0.05) * 1.7, 0.0, 1.0)
+
+
+def sketch_tiles() -> dict[str, Image.Image]:
+    """Recorta cada boceto de la hoja como RGBA negro con el trazo en el canal alfa, ajustado a su caja."""
+    sheet = Image.open(DESIGN / "atelier-lineart.jpg").convert("L")
+    w, h = sheet.size
+    tiles = {}
+    for i, name in enumerate(SHEET):
+        c, r = i % 3, i // 3
+        cell = np.asarray(sheet.crop((c * w // 3, r * h // 2, (c + 1) * w // 3, (r + 1) * h // 2)))
+        a = ink_alpha(cell)
+        ys, xs = np.where(a > 0.25)
+        if len(xs) == 0:
+            raise SystemExit(f"No se encontró dibujo en la celda «{name}»")
+        a = a[ys.min() : ys.max() + 1, xs.min() : xs.max() + 1]
+        rgba = np.dstack([np.zeros(a.shape + (3,), np.uint8), (a * 255).astype(np.uint8)])
+        tiles[name] = Image.fromarray(rgba, "RGBA")
+    return tiles
+
+
+def square(img: Image.Image, side: int, pad: float = 0.06) -> Image.Image:
+    """Centra el dibujo en un lienzo cuadrado transparente, con un margen proporcional."""
+    inner = round(side * (1 - 2 * pad))
+    scale = inner / max(img.size)
+    img = img.resize((max(1, round(img.width * scale)), max(1, round(img.height * scale))), Image.LANCZOS)
+    out = Image.new("RGBA", (side, side), (0, 0, 0, 0))
+    out.paste(img, ((side - img.width) // 2, (side - img.height) // 2))
     return out
 
 
-def grid_cells(mask: np.ndarray, cols: int, rows: int, min_len: int, thr: float) -> list[tuple[int, int, int, int]]:
-    """Baldosas (x0, y0, x1, y1) de una máscara booleana «hay contenido», en orden de lectura."""
-    xs = runs(mask.mean(axis=0) > thr, min_len)
-    ys = runs(mask.mean(axis=1) > thr, min_len)
-    if len(xs) != cols or len(ys) != rows:
-        raise SystemExit(f"Se esperaban {cols}×{rows} baldosas y se detectaron {len(xs)}×{len(ys)}")
-    return [(x0, y0, x1, y1) for (y0, y1) in ys for (x0, x1) in xs]
+def build_art(tiles: dict[str, Image.Image]) -> None:
+    ART.mkdir(parents=True, exist_ok=True)
+    for old in ART.glob("*.webp"):
+        old.unlink()
+    for name in IN_APP:
+        square(tiles[name], 400).save(ART / f"{name}.webp", "WEBP", quality=92, alpha_quality=100, method=6)
 
 
-def white_sheet_tiles(path: Path, cols: int, rows: int, inset: int = 3) -> list[Image.Image]:
-    """Recorta las baldosas de color de una hoja sobre fondo blanco."""
-    img = Image.open(path).convert("RGB")
-    content = np.asarray(img).min(axis=2) < 235
-    return [img.crop((x0 + inset, y0 + inset, x1 - inset, y1 - inset)) for x0, y0, x1, y1 in grid_cells(content, cols, rows, 40, 0.15)]
+def tinted(img: Image.Image, color: tuple[int, int, int]) -> Image.Image:
+    solid = Image.new("RGBA", img.size, color + (255,))
+    solid.putalpha(img.getchannel("A"))
+    return solid
 
 
-def rounded(img: Image.Image, radius_ratio: float) -> Image.Image:
-    """RGBA con esquinas redondeadas transparentes (suavizadas por supersampling)."""
-    size, scale = img.size, 4
-    mask = Image.new("L", (size[0] * scale, size[1] * scale), 0)
-    ImageDraw.Draw(mask).rounded_rectangle(
-        (0, 0, size[0] * scale - 1, size[1] * scale - 1), radius=int(min(size) * radius_ratio * scale), fill=255
-    )
+# ───────────────────────── iconos PWA ─────────────────────────
+
+def monogram(size: int = 1024, frame: bool = True) -> Image.Image:
+    """«M» de Cormorant en marfil sobre tinta, con un filete fino de camel, como la etiqueta de una prenda."""
+    scale = 2  # supermuestreo
+    s = size * scale
+    img = Image.new("RGB", (s, s), INK)
+    d = ImageDraw.Draw(img)
+    if frame:
+        inset, lw = round(s * 0.227), max(2, round(s * 0.0035))
+        d.rectangle((inset, inset, s - inset, s - inset), outline=CAMEL, width=lw)
+    centered(d, (s / 2, s / 2 + s * 0.012), "M", font("cormorant-garamond", "normal", round(s * 0.5), 500), IVORY)
+    return img.resize((size, size), Image.LANCZOS)
+
+
+def rounded(img: Image.Image, ratio: float) -> Image.Image:
+    size, k = img.size, 4
+    mask = Image.new("L", (size[0] * k, size[1] * k), 0)
+    ImageDraw.Draw(mask).rounded_rectangle((0, 0, size[0] * k - 1, size[1] * k - 1), radius=int(min(size) * ratio * k), fill=255)
     out = img.convert("RGBA")
     out.putalpha(mask.resize(size, Image.LANCZOS))
     return out
 
 
-def save_webp(img: Image.Image, path: Path, quality: int = 86) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    img.save(path, "WEBP", quality=quality, alpha_quality=100, method=6)
-
-
-def key_magenta(img: Image.Image) -> Image.Image:
-    """Quita el fondo magenta liso (#ff00ff): transparencia progresiva y corrección del tinte en los bordes."""
-    a = np.asarray(img.convert("RGB")).astype(np.float32)
-    r, g, b = a[..., 0], a[..., 1], a[..., 2]
-    m = (np.minimum(r, b) - g) / 255.0  # ≈1 en magenta puro, ≈0 en blanco/gris, <0 en rojos, naranjas, verdes…
-    # Más de un 60 % de magenta cuenta como fondo (también las sombras suaves, que se recrean con CSS).
-    t = np.clip(m, 0.0, 0.6)
-    alpha = 1.0 - np.clip((m - 0.12) / 0.48, 0.0, 1.0)
-    # En el borde (mezcla de blanco y magenta) se resta el magenta para no dejar halo rosa.
-    k = np.array([255.0, 0.0, 255.0])
-    edge = (m > 0.12)[..., None]
-    rgb = np.where(edge, (a - t[..., None] * k) / (1.0 - t[..., None]), a)
-    alpha = np.where(alpha < 0.05, 0.0, alpha)
-    return Image.fromarray(np.dstack([np.clip(rgb, 0, 255), alpha * 255]).astype(np.uint8), "RGBA")
-
-
-def trim(img: Image.Image, pad: int = 6) -> Image.Image:
-    box = img.getchannel("A").point(lambda v: 255 if v > 10 else 0).getbbox()
-    if not box:
-        return img
-    x0, y0, x1, y1 = box
-    return img.crop((max(0, x0 - pad), max(0, y0 - pad), min(img.width, x1 + pad), min(img.height, y1 + pad)))
-
-
-def fit(img: Image.Image, max_side: int) -> Image.Image:
-    scale = max_side / max(img.size)
-    return img.resize((max(1, round(img.width * scale)), max(1, round(img.height * scale))), Image.LANCZOS)
-
-
-# ───────────────────────── iconos PWA ─────────────────────────
-
 def build_icons() -> None:
-    src = Image.open(DESIGN / "mascot.jpg").convert("RGB")  # 1024×1024, degradado a sangre con la mascota centrada
-
-    # Sin cuantizar a paleta: el degradado se ve a rayas con 256 colores.
-    for size in (512, 192):
-        rounded(src.resize((size, size), Image.LANCZOS), 0.2).save(PUB / f"icon-{size}.png", optimize=True)
-
-    # Maskable: la mascota debe caber en el círculo seguro (80 %). Se reduce y el degradado se prolonga
-    # replicando el borde (es suave, así que no se nota la unión).
-    inner_px, full = 800, 1024
-    pad = (full - inner_px) // 2
-    inner = np.asarray(src.resize((inner_px, inner_px), Image.LANCZOS))
-    maskable = Image.fromarray(np.pad(inner, ((pad, pad), (pad, pad), (0, 0)), mode="edge"))
-    maskable.resize((512, 512), Image.LANCZOS).save(PUB / "icon-512-maskable.png", optimize=True)
-
-    src.resize((180, 180), Image.LANCZOS).save(PUB / "apple-touch-icon.png", optimize=True)
-    # El favicon es diminuto: solo la camiseta, sin el sol ni los destellos.
-    face = src.crop((170, 150, 880, 860)).resize((96, 96), Image.LANCZOS)
-    rounded(face, 0.22).save(PUB / "favicon.ico", sizes=[(16, 16), (32, 32), (48, 48)])
-
-
-# ───────────────────────── ilustraciones ─────────────────────────
-
-def build_art() -> None:
-    for name, tile in zip(EMPTIES, white_sheet_tiles(DESIGN / "flow-empties.jpg", 3, 2)):
-        save_webp(rounded(tile.resize((360, 360), Image.LANCZOS), 0.17), ASSETS / "art" / f"{name}.webp")
-
-
-def build_weather() -> None:
-    for name, tile in zip(WEATHER, white_sheet_tiles(DESIGN / "flow-weather.jpg", 4, 2)):
-        save_webp(rounded(tile.resize((192, 192), Image.LANCZOS), 0.2), ASSETS / "weather" / f"{name}.webp")
-
-
-def build_feel() -> None:
-    for name, tile in zip(FEEL, white_sheet_tiles(DESIGN / "flow-feel.jpg", 3, 1)):
-        save_webp(rounded(tile.resize((192, 192), Image.LANCZOS), 0.2), ASSETS / "feel" / f"{name}.webp")
-
-
-def build_stickers() -> list[Image.Image]:
-    sheet = Image.open(DESIGN / "flow-stickers.jpg").convert("RGB")
-    px = np.asarray(sheet).astype(np.int16)
-    content = ~((np.minimum(px[..., 0], px[..., 2]) - px[..., 1]) > 100)  # todo lo que no es magenta
-    out = []
-    for name, (x0, y0, x1, y1) in zip(STICKERS, grid_cells(content, 4, 3, 60, 0.05)):
-        cut = fit(trim(key_magenta(sheet.crop((x0, y0, x1, y1)))), 192)
-        save_webp(cut, ASSETS / "stickers" / f"{name}.webp", quality=90)
-        out.append(cut)
-    return out
+    full = monogram(1024)  # el filete queda dentro del círculo seguro (80 %), así que sirve también como maskable
+    for px in (512, 192):
+        rounded(full.resize((px, px), Image.LANCZOS), 0.2).save(PUB / f"icon-{px}.png", optimize=True)
+    full.resize((512, 512), Image.LANCZOS).save(PUB / "icon-512-maskable.png", optimize=True)
+    full.resize((180, 180), Image.LANCZOS).save(PUB / "apple-touch-icon.png", optimize=True)
+    # Favicon: solo la M, sin filete, más grande para que se lea a 16 px
+    small = monogram(96, frame=False)
+    rounded(small, 0.18).save(PUB / "favicon.ico", sizes=[(16, 16), (32, 32), (48, 48)])
 
 
 # ───────────────────────── imagen para compartir ─────────────────────────
 
-def build_share(stickers: list[Image.Image]) -> None:
+def build_share(tiles: dict[str, Image.Image]) -> None:
     w, h = 1200, 630
-    base = Image.new("RGBA", (w, h), CREAM + (255,))
+    img = Image.new("RGB", (w, h), IVORY)
+    d = ImageDraw.Draw(img)
+    d.rectangle((28, 28, w - 28, h - 28), outline=LINE, width=2)
 
-    # Manchas de color suaves
-    blobs = Image.new("RGBA", (w, h), (0, 0, 0, 0))
-    d = ImageDraw.Draw(blobs)
-    for (cx, cy, r, col) in [(80, 60, 300, (79, 195, 247, 120)), (1130, 90, 260, (255, 213, 74, 150)),
-                             (1100, 600, 300, (255, 92, 108, 90)), (140, 640, 260, (111, 224, 181, 130))]:
-        d.ellipse((cx - r, cy - r, cx + r, cy + r), fill=col)
-    base = Image.alpha_composite(base, blobs.filter(ImageFilter.GaussianBlur(90)))
+    # Dos bocetos a la derecha
+    for name, x, height in (("blazer", 735, 380), ("trench", 940, 420)):
+        t = tiles[name]
+        t = t.resize((round(t.width * height / t.height), height), Image.LANCZOS)
+        img.paste(tinted(t, INK), (x, (h - height) // 2), tinted(t, INK))
 
-    # Pegatinas repartidas por los bordes
-    rnd = random.Random(7)
-    # fuera de la zona del texto (x 60–690, y 140–470) y de la tarjeta (x 670–1150)
-    spots = [(40, 30, 120), (200, 20, 100), (400, 30, 95), (560, 20, 100), (1090, 40, 100),
-             (30, 500, 105), (250, 515, 100), (460, 520, 100), (620, 530, 105), (900, 525, 110), (1090, 500, 100)]
-    for (x, y, size), st in zip(spots, rnd.sample(stickers, len(spots))):
-        s = fit(st, size).rotate(rnd.uniform(-22, 22), expand=True, resample=Image.BICUBIC)
-        base.alpha_composite(s, (x, y))
-
-    # Mascota a la derecha, sobre una tarjeta con el degradado del icono
-    card = rounded(Image.open(DESIGN / "mascot.jpg").convert("RGB").resize((430, 430), Image.LANCZOS), 0.2)
-    framed = Image.new("RGBA", (card.width + 24, card.height + 24), (0, 0, 0, 0))
-    ImageDraw.Draw(framed).rounded_rectangle((0, 0, framed.width - 1, framed.height - 1), radius=92, fill=(255, 255, 255, 255))
-    framed.alpha_composite(card, (12, 12))
-    shadow = Image.new("RGBA", (w, h), (0, 0, 0, 0))
-    shadow.paste((42, 30, 74, 110), (690, 118), framed.getchannel("A"))
-    base = Image.alpha_composite(base, shadow.filter(ImageFilter.GaussianBlur(18)))
-    base.alpha_composite(framed.rotate(-5, expand=True, resample=Image.BICUBIC), (672, 96))
-
-    # Texto
-    draw = ImageDraw.Draw(base)
-    draw.text((66, 150), "Modelito", font=ImageFont.truetype(FONT_BOLD, 138), fill=INK)
+    spaced(d, (84, 150), "DIARIO DE OUTFITS CON EL TIEMPO", font("manrope", "normal", 19, 600), CAMEL, 4.2)
+    d.text((78, 198), "Modelito", font=font("cormorant-garamond", "normal", 156, 500), fill=INK)
     for i, line in enumerate(["Qué te pusiste", "en días como hoy"]):
-        draw.text((72, 340 + i * 60), line, font=ImageFont.truetype(FONT_BOLD, 44), fill=(110, 100, 144))
-    base.convert("RGB").save(PUB / "og-image.jpg", "JPEG", quality=86, optimize=True)
+        d.text((84, 392 + i * 64), line, font=font("cormorant-garamond", "italic", 52, 500), fill=MUTED)
+    img.save(PUB / "og-image.jpg", "JPEG", quality=90, optimize=True)
 
 
 if __name__ == "__main__":
+    tiles = sketch_tiles()
+    build_art(tiles)
     build_icons()
-    build_art()
-    build_weather()
-    build_feel()
-    build_share(build_stickers())
+    build_share(tiles)
     print("Assets generados.")

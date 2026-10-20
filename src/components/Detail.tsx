@@ -72,7 +72,7 @@ export function Detail({
         <div className="sheet-photo">
           {url ? <img src={url} alt="Modelito" /> : <span className="skeleton fill" />}
           <button className="icon-btn glass" onClick={close} aria-label="Cerrar" autoFocus>
-            <XIcon size={20} weight="bold" />
+            <XIcon size={20} weight="light" />
           </button>
         </div>
 
@@ -80,7 +80,7 @@ export function Detail({
           <h2>{formatDate(outfit.date)}</h2>
           {outfit.place && (
             <span className="muted small place">
-              <MapPinIcon size={14} weight="fill" aria-hidden="true" />
+              <MapPinIcon size={14} weight="light" aria-hidden="true" />
               {outfit.place}
             </span>
           )}
@@ -89,7 +89,7 @@ export function Detail({
         {w && (
           <div className="weather-row">
             <span className="weather-glyph small">
-              <WeatherIcon code={w.code} size={52} />
+              <WeatherIcon code={w.code} size={44} />
             </span>
             <div>
               <p className="strong">
@@ -100,11 +100,11 @@ export function Detail({
                 {w.humidity != null && (
                   <>
                     {' · '}
-                    <DropIcon size={12} weight="duotone" aria-hidden="true" /> {Math.round(w.humidity)}%
+                    <DropIcon size={12} weight="light" aria-hidden="true" /> {Math.round(w.humidity)}%
                   </>
                 )}
                 {' · '}
-                <WindIcon size={12} weight="duotone" aria-hidden="true" /> {Math.round(w.wind)} km/h
+                <WindIcon size={12} weight="light" aria-hidden="true" /> {Math.round(w.wind)} km/h
               </p>
             </div>
           </div>
@@ -146,7 +146,7 @@ export function Detail({
         ) : (
           <div className="row">
             <button className="btn danger" onClick={() => setConfirming(true)}>
-              <TrashIcon size={20} aria-hidden="true" />
+              <TrashIcon size={18} weight="light" aria-hidden="true" />
               Borrar
             </button>
             <button className="btn primary" onClick={save} disabled={!dirty}>
