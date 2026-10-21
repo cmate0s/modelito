@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { deleteOutfit, saveOutfit } from '../lib/db.ts'
 import { formatDate } from '../lib/format.ts'
 import { useObjectUrl } from '../lib/hooks.ts'
+import { lockScroll } from '../lib/scrollLock.ts'
 import type { Outfit } from '../lib/types.ts'
 import { dayRange } from '../lib/weather.ts'
 import { ComfortPicker, Stars } from './Rating.tsx'
@@ -38,12 +39,11 @@ export function Detail({
   }, [closing, onClose])
 
   useEffect(() => {
-    const prev = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
+    const unlock = lockScroll()
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setClosing(true)
     window.addEventListener('keydown', onKey)
     return () => {
-      document.body.style.overflow = prev
+      unlock()
       window.removeEventListener('keydown', onKey)
     }
   }, [])

@@ -21,7 +21,7 @@ import { dayRange, fetchWeather, loadPlace, locate, savePlace, searchCity } from
 import { LineArt } from './LineArt.tsx'
 import { PageHeader } from './PageHeader.tsx'
 import { ComfortPicker, Stars } from './Rating.tsx'
-import { Thumb } from './Thumb.tsx'
+import { WeekGrid } from './WeekGrid.tsx'
 import { WeatherIcon, WeatherLabel } from './WeatherIcon.tsx'
 
 type WeatherState =
@@ -89,7 +89,7 @@ export function Today({
 
   const weather = state.status === 'ready' ? state.weather : undefined
   const today = weather ? dayRange(weather) : undefined
-  const similar = today ? findSimilarDays(outfits, today).slice(0, 8) : []
+  const similar = today ? findSimilarDays(outfits, today) : []
 
   async function onPhoto(file: File | undefined) {
     if (!file) return
@@ -195,12 +195,10 @@ export function Today({
             <h2>Días como hoy</h2>
             <span className="badge">{Math.round(today!.min)}° a {Math.round(today!.max)}°</span>
           </div>
-          <p className="muted small">Lo que te pusiste con mínima y máxima parecidas (a menos de 2°). Arriba, lo que mejor te funcionó.</p>
-          <div className="strip">
-            {similar.map((o, i) => (
-              <Thumb key={o.id} outfit={o} index={i} onOpen={onOpen} />
-            ))}
-          </div>
+          <p className="muted small">
+            Lo que te pusiste con mínima y máxima parecidas (a menos de 2°), por semanas. De cada una, las 3 mejor valoradas.
+          </p>
+          <WeekGrid outfits={similar} maxWeeks={4} onOpen={onOpen} />
         </Reveal>
       )}
 

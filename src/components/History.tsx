@@ -5,7 +5,7 @@ import type { Outfit } from '../lib/types.ts'
 import { ImportPhotos } from './ImportPhotos.tsx'
 import { LineArt } from './LineArt.tsx'
 import { PageHeader } from './PageHeader.tsx'
-import { Thumb } from './Thumb.tsx'
+import { WeekGrid } from './WeekGrid.tsx'
 
 export function History({
   outfits,
@@ -91,11 +91,7 @@ export function History({
           </button>
         </div>
       ) : (
-        <div className="grid">
-          {shown.map((o, i) => (
-            <Thumb key={o.id} outfit={o} index={i} onOpen={onOpen} />
-          ))}
-        </div>
+        <WeekGrid outfits={shown} onOpen={onOpen} />
       )}
     </div>
   )

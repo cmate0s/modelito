@@ -9,10 +9,12 @@ import { ComfortIcon, Stars } from './Rating.tsx'
 export function Thumb({
   outfit,
   index = 0,
+  compact = false,
   onOpen,
 }: {
   outfit: Outfit
   index?: number
+  compact?: boolean
   onOpen: (o: Outfit) => void
 }) {
   const url = useObjectUrl(outfit.photo)
@@ -20,7 +22,7 @@ export function Thumb({
   return (
     <button
       ref={ref}
-      className="thumb reveal"
+      className={`thumb${compact ? ' mini' : ''} reveal`}
       style={{ '--delay': `${(index % 6) * 60}ms` } as CSSProperties}
       onClick={() => onOpen(outfit)}
     >
