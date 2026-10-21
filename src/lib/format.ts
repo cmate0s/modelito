@@ -14,15 +14,6 @@ export function formatDate(date: string): string {
   })
 }
 
-export function formatDateYear(date: string): string {
-  return new Date(`${date}T12:00:00`).toLocaleDateString('es-ES', {
-    weekday: 'short',
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  })
-}
-
 export const isoDate = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 
