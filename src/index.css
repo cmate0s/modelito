@@ -630,10 +630,18 @@ input[type='number']::-webkit-inner-spin-button {
 /* ───── Foto ───── */
 
 .photo-slot {
+  position: relative;
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
   aspect-ratio: 3 / 4;
   max-height: 60vh;
   overflow: hidden;
   background: var(--raised);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
 }
 .photo-slot img {
   width: 100%;
@@ -641,15 +649,29 @@ input[type='number']::-webkit-inner-spin-button {
   object-fit: cover;
   animation: fade-up var(--slow) var(--ease);
 }
+.photo-change {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  padding: 4px 12px;
+  background: var(--glass);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  transform: translateX(-50%);
+}
 .photo-empty {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 4px;
-  height: 100%;
-  margin: 8px;
   height: calc(100% - 16px);
+  margin: 8px;
   border: 1px dashed var(--line-strong);
   color: var(--muted);
   text-align: center;
@@ -661,7 +683,7 @@ input[type='number']::-webkit-inner-spin-button {
   color: var(--ink);
   opacity: 0.85;
 }
-.photo-empty p:first-of-type {
+.photo-empty-title {
   margin-top: 12px;
   color: var(--ink);
   font-family: var(--display);

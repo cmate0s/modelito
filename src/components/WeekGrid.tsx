@@ -8,16 +8,13 @@ import { WeekSheet } from './WeekSheet.tsx'
 /** Semanas (lunes a domingo) con las 3 mejores fotos de cada una; si hay menos, queda el hueco vacío. */
 export function WeekGrid({
   outfits,
-  maxWeeks,
   onOpen,
 }: {
   outfits: Outfit[]
-  /** Si se indica, solo las semanas más recientes. */
-  maxWeeks?: number
   onOpen: (o: Outfit) => void
 }) {
   const [openKey, setOpenKey] = useState<string | null>(null)
-  const weeks = groupByWeek(outfits).slice(0, maxWeeks)
+  const weeks = groupByWeek(outfits)
   const openWeek = weeks.find((w) => w.key === openKey)
   return (
     <div className="weeks">

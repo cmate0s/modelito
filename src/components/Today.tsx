@@ -1,8 +1,6 @@
 import {
-  CameraIcon,
   CrosshairIcon,
   DropIcon,
-  ImagesIcon,
   MagnifyingGlassIcon,
   MapPinIcon,
   ThermometerIcon,
@@ -21,7 +19,7 @@ import { dayRange, fetchWeather, loadPlace, locate, savePlace, searchCity } from
 import { LineArt } from './LineArt.tsx'
 import { PageHeader } from './PageHeader.tsx'
 import { ComfortPicker, Stars } from './Rating.tsx'
-import { WeekGrid } from './WeekGrid.tsx'
+import { Thumb } from './Thumb.tsx'
 import { WeatherIcon, WeatherLabel } from './WeatherIcon.tsx'
 
 type WeatherState =
@@ -54,6 +52,7 @@ export function Today({
   const [notes, setNotes] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const fileRef = useRef<HTMLInputElement>(null)
   const photoUrl = useObjectUrl(photo)
 
   const loadWeather = useCallback(async (p: Place) => {
@@ -89,7 +88,7 @@ export function Today({
 
   const weather = state.status === 'ready' ? state.weather : undefined
   const today = weather ? dayRange(weather) : undefined
-  const similar = today ? findSimilarDays(outfits, today) : []
+  const similar = today ? findSimilarDays(outfits, today).slice(0, 8) : []
 
   async function onPhoto(file: File | undefined) {
     if (!file) return
@@ -195,10 +194,12 @@ export function Today({
             <h2>Días como hoy</h2>
             <span className="badge">{Math.round(today!.min)}° a {Math.round(today!.max)}°</span>
           </div>
-          <p className="muted small">
-            Lo que te pusiste con mínima y máxima parecidas (a menos de 2°), por semanas. De cada una, las 3 mejor valoradas.
-          </p>
-          <WeekGrid outfits={similar} maxWeeks={4} onOpen={onOpen} />
+          <p className="muted small">Lo que te pusiste con mínima y máxima parecidas (a menos de 2°). Arriba, lo que mejor te funcionó.</p>
+          <div className="strip">
+            {similar.map((o, i) => (
+              <Thumb key={o.id} outfit={o} index={i} onOpen={onOpen} />
+            ))}
+          </div>
         </Reveal>
       )}
 
@@ -222,27 +223,35 @@ export function Today({
 
       <Reveal as="section" className="card form">
         <h2>Tu modelito de hoy</h2>
-        <div className="photo-slot">
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/*"
+          hidden
+          onChange={(e) => {
+            void onPhoto(e.target.files?.[0])
+            e.target.value = ''
+          }}
+        />
+        <button
+          type="button"
+          className="photo-slot"
+          aria-label={photo ? 'Cambiar la foto' : 'Elegir una foto de la galería'}
+          onClick={() => fileRef.current?.click()}
+        >
           {photoUrl ? (
-            <img src={photoUrl} alt="Vista previa del modelito" />
+            <>
+              <img src={photoUrl} alt="Vista previa del modelito" />
+              <span className="photo-change">Toca para cambiarla</span>
+            </>
           ) : (
-            <div className="photo-empty">
+            <span className="photo-empty">
               <LineArt name="trench" />
-              <p>Añade una foto</p>
-              <p className="muted small">Mejor de cuerpo entero, frente al espejo</p>
-            </div>
+              <span className="photo-empty-title">Elige una foto</span>
+              <span className="muted small">Toca aquí para abrir tu galería</span>
+            </span>
           )}
-        </div>
-        <div className="row">
-          <PhotoButton capture onFile={onPhoto}>
-            <CameraIcon size={18} weight="light" aria-hidden="true" />
-            {photo ? 'Repetir' : 'Hacer foto'}
-          </PhotoButton>
-          <PhotoButton onFile={onPhoto}>
-            <ImagesIcon size={18} weight="light" aria-hidden="true" />
-            Galería
-          </PhotoButton>
-        </div>
+        </button>
 
         <div className="field">
           <span className="label">Valoración</span>
@@ -319,36 +328,6 @@ function WeatherSkeleton() {
       </div>
       <span className="skeleton" style={{ width: 56, height: 56, borderRadius: 999 }} />
     </div>
-  )
-}
-
-function PhotoButton({
-  capture,
-  onFile,
-  children,
-}: {
-  capture?: boolean
-  onFile: (f: File | undefined) => void
-  children: ReactNode
-}) {
-  const ref = useRef<HTMLInputElement>(null)
-  return (
-    <>
-      <input
-        ref={ref}
-        type="file"
-        accept="image/*"
-        capture={capture ? 'user' : undefined}
-        hidden
-        onChange={(e) => {
-          onFile(e.target.files?.[0])
-          e.target.value = ''
-        }}
-      />
-      <button className="btn" type="button" onClick={() => ref.current?.click()}>
-        {children}
-      </button>
-    </>
   )
 }
 
