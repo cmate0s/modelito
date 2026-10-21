@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { deleteOutfit, saveOutfit } from '../lib/db.ts'
 import { formatDate } from '../lib/format.ts'
 import { useObjectUrl } from '../lib/hooks.ts'
+import { useBackEntry } from '../lib/backStack.ts'
 import { lockScroll } from '../lib/scrollLock.ts'
 import type { Outfit } from '../lib/types.ts'
 import { dayRange } from '../lib/weather.ts'
@@ -30,6 +31,7 @@ export function Detail({
   const dirty = rating !== outfit.rating || comfort !== outfit.comfort || notes !== outfit.notes
 
   const close = () => setClosing(true)
+  useBackEntry(true, close)
 
   // deja terminar la animación de salida antes de desmontar
   useEffect(() => {
@@ -61,7 +63,7 @@ export function Detail({
   }
 
   return (
-    <div className={`sheet-backdrop${closing ? ' closing' : ''}`} onClick={close}>
+    <div className={`sheet-backdrop detail${closing ? ' closing' : ''}`} onClick={close}>
       <div
         className="sheet"
         role="dialog"

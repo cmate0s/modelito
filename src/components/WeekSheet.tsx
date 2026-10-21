@@ -2,6 +2,7 @@ import { XIcon } from '@phosphor-icons/react'
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { formatWeekRange, type WeekGroup } from '../lib/weeks.ts'
+import { useBackEntry } from '../lib/backStack.ts'
 import { lockScroll } from '../lib/scrollLock.ts'
 import type { Outfit } from '../lib/types.ts'
 import { Thumb } from './Thumb.tsx'
@@ -11,6 +12,7 @@ const EXIT_MS = 300
 /** Todas las fotos de una semana, en una hoja que sube desde abajo. */
 export function WeekSheet({ week, onClose, onOpen }: { week: WeekGroup; onClose: () => void; onOpen: (o: Outfit) => void }) {
   const [closing, setClosing] = useState(false)
+  useBackEntry(true, () => setClosing(true))
 
   // deja terminar la animación de salida antes de desmontar
   useEffect(() => {

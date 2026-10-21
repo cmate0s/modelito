@@ -4,6 +4,7 @@ import { Detail } from './components/Detail.tsx'
 import { History } from './components/History.tsx'
 import { Settings } from './components/Settings.tsx'
 import { Today } from './components/Today.tsx'
+import { useBackEntry } from './lib/backStack.ts'
 import { listOutfits } from './lib/db.ts'
 import type { Outfit } from './lib/types.ts'
 
@@ -40,6 +41,9 @@ export default function App() {
     setTab(next)
     window.scrollTo({ top: 0 })
   }
+
+  // atrás desde Historial o Ajustes vuelve a Hoy; solo desde Hoy sale de la app
+  useBackEntry(tab !== 'today', () => go('today'))
 
   useEffect(() => {
     reload()

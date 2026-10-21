@@ -897,6 +897,10 @@ input[type='number']::-webkit-inner-spin-button {
   background: var(--scrim);
   animation: fade-in var(--slow) var(--ease);
 }
+/* el detalle de una foto va siempre por encima de la hoja de una semana, aunque esta se pinte después */
+.sheet-backdrop.detail {
+  z-index: 25;
+}
 .sheet {
   position: relative;
   display: flex;
